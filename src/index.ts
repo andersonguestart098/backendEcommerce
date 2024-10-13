@@ -1,17 +1,26 @@
 import express from 'express';
+import cors from 'cors'; // Importar o CORS
 import productRoutes from './routes/productRoutes';
-import orderRoutes from './routes/orderRoutes'; // Importando orderRoutes
-import userRoutes from './routes/userRoutes';   // Importando userRoutes
+import bannerRoutes from './routes/bannerRoutes';
 
 const app = express();
 
+// Configurar o CORS
+app.use(cors({
+    origin: 'http://localhost:3000', // Permitir apenas o seu frontend local
+    methods: ['GET', 'POST', 'PUT', 'DELETE'], // Métodos permitidos
+    allowedHeaders: ['Content-Type', 'Authorization'] // Cabeçalhos permitidos
+}));
+
 app.use(express.json());
 
-app.use('/products', productRoutes); // Rotas de produtos
-app.use('/orders', orderRoutes);     // Rotas de pedidos
-app.use('/users', userRoutes);       // Rotas de usuários
+// Rotas
+app.use('/products', productRoutes);
 
-const PORT = process.env.PORT || 3000;
+app.use('/banners', bannerRoutes);  
+
+// Porta do servidor
+const PORT = process.env.PORT || 3001;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+    console.log(`Servidor rodando na porta ${PORT}`);
 });
