@@ -3,6 +3,7 @@ import cors from "cors";
 import productRoutes from "./routes/productRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
 import userRoutes from "./routes/userRoutes"; // Importa as rotas de usuários
+import orderRoutes from "./routes/orderRoutes"; // Importa as rotas de pedidos
 import authMiddleware from "./middleware/authMiddleware";
 import dotenv from "dotenv";
 import authRoutes from "./routes/authRoutes";
@@ -27,6 +28,7 @@ app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
 app.use("/users", userRoutes); // Adicionar rotas de usuário
 app.use("/auth", authRoutes);
+app.use("/orders", orderRoutes); // Adicionar rotas de pedidos
 
 app.get("/private-route", authMiddleware, (req, res) => {
   res.send("Acesso autorizado");
