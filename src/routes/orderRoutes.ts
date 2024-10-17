@@ -1,10 +1,11 @@
 import { Router } from 'express';
 import { getAllOrders, getOrderById, createOrder } from '../controllers/orderController';
+import authMiddleware from '../middleware/authMiddleware';
 
 const router = Router();
 
-router.get('/', getAllOrders); // Rota para listar todos os pedidos
-router.get('/:id', getOrderById); // Rota para obter um pedido por ID
-router.post('/', createOrder); // Rota para criar um novo pedido
+router.get('/', authMiddleware, getAllOrders);
+router.get('/:id', authMiddleware, getOrderById);
+router.post('/', authMiddleware, createOrder);
 
 export default router;

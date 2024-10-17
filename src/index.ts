@@ -15,9 +15,9 @@ const app = express();
 // Configurar o CORS
 app.use(
   cors({
-    origin: "http://localhost:3000", // Permitir apenas o frontend local
+    origin: "http://localhost:3000", // Permitir o frontend local
     methods: ["GET", "POST", "PUT", "DELETE"], // Métodos permitidos
-    allowedHeaders: ["Content-Type", "Authorization"], // Cabeçalhos permitidos
+    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"], // Adiciona o cabeçalho x-auth-token
   })
 );
 
