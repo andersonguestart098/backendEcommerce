@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -15,7 +12,11 @@ datasource db {
 
 enum OrderStatus {
   PENDING
-  CONFIRMED
+  PAYMENT_APPROVED
+  AWAITING_STOCK_CONFIRMATION
+  SEPARATED
+  DISPATCHED
+  DELIVERED
   CANCELED
 }
 
@@ -26,26 +27,23 @@ model Banner {
 }
 
 model Product {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
- name           String
-  price          Float
-  description    String
-  discount       Int
-  paymentOptions PaymentOption[]  // Adicione esta linha
-  image          String
-  metersPerBox   Float
-  weightPerBox   Float
-  boxDimensions  String
-  materialType   String
-  freightClass   Int
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-
-  // Relacionamentos
-  colors Color[]
-  orderProducts  OrderProduct[]
+  id              String          @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
+  name            String
+  price           Float
+  description     String
+  discount        Int
+  image           String
+  metersPerBox    Float
+  weightPerBox    Float
+  boxDimensions   String
+  materialType    String
+  freightClass    Int
+  paymentOptions  PaymentOption[]  // Relacionamento com opções de pagamento
+  colors          Color[]          // Relacionamento com cores
+  orderProducts   OrderProduct[]   // Relacionamento com OrderProduct
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
 }
-
 
 model Color {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
@@ -56,25 +54,25 @@ model Color {
 }
 
 model PaymentOption {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
-  option      String
-  productId   String   @db.ObjectId
-  product     Product? @relation(fields: [productId], references: [id])
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
+  option    String
+  productId String   @db.ObjectId
+  product   Product? @relation(fields: [productId], references: [id])
 }
 
 model Order {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
-  userId     String   @db.ObjectId
-  user       User     @relation(fields: [userId], references: [id])
-  products   OrderProduct[]
-  status     OrderStatus @default(PENDING)
+  id         String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId     String        @db.ObjectId
+  user       User          @relation(fields: [userId], references: [id])
+  products   OrderProduct[]  // Relacionamento com OrderProduct
+  status     OrderStatus   @default(PENDING)
   totalPrice Float
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
 }
 
 model OrderProduct {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
   orderId   String   @db.ObjectId
   productId String   @db.ObjectId
   product   Product  @relation(fields: [productId], references: [id])
@@ -87,10 +85,8 @@ model User {
   name         String
   email        String   @unique
   password     String
-  tipoUsuario  String   // Novo campo para diferenciar tipos de usuário (admin, cliente, etc.)
-  orders       Order[]
+  tipoUsuario  String   // Campo para diferenciar tipos de usuário (admin, cliente, etc.)
+  orders       Order[]  // Relacionamento com pedidos
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 }
-
-
