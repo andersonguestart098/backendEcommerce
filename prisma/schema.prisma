@@ -83,13 +83,14 @@ model OrderProduct {
 }
 
 model User {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
-  name      String
-  email     String   @unique
-  password  String
-  orders    Order[]
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  name         String
+  email        String   @unique
+  password     String
+  tipoUsuario  String   // Novo campo para diferenciar tipos de usuário (admin, cliente, etc.)
+  orders       Order[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
 
 

@@ -39,13 +39,14 @@ export const createUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { name, email, password } = req.body;
+  const { name, email, password, tipoUsuario } = req.body; // Incluindo tipoUsuario
   try {
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password,
+        tipoUsuario, // Certifique-se de fornecer tipoUsuario
       },
     });
     res.status(201).json(newUser);
@@ -59,7 +60,7 @@ export const registerUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { name, email, password } = req.body;
+  const { name, email, password, tipoUsuario } = req.body; // Incluindo tipoUsuario
 
   try {
     // Verifica se o usuário já existe
@@ -81,6 +82,7 @@ export const registerUser = async (
         name,
         email,
         password: hashedPassword,
+        tipoUsuario, // Incluindo tipoUsuario
       },
     });
 

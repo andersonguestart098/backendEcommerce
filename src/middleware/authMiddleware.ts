@@ -1,39 +1,44 @@
-import { Request, Response, NextFunction } from "express";
+import { Request, Response, NextFunction, RequestHandler } from "express";
 import jwt from "jsonwebtoken";
 
-interface AuthenticatedRequest extends Request {
-  user?: any; // Define o tipo de usuário que será salvo no req
+interface AuthenticatedUser {
+  id: string;
+  tipoUsuario: string;
 }
 
-const authMiddleware = (
-  req: AuthenticatedRequest,
-  res: Response,
+interface AuthenticatedRequest extends Request {
+  user: AuthenticatedUser; // Tornar `user` obrigatório
+}
+
+const authMiddleware: RequestHandler = (
+  req: Request, 
+  res: Response, 
   next: NextFunction
 ): void => {
   const token = req.headers["x-auth-token"] as string;
 
-  console.log("Token recebido:", token); // Log do token recebido
-
   if (!token) {
-    console.log("Nenhum token fornecido");
     res.status(401).json({ msg: "Sem token, autorização negada" });
-    return; // Certifique-se de retornar para que a função não continue
+    return;
   }
 
   try {
     const decoded = jwt.verify(
       token,
       process.env.JWT_SECRET || "default-secret-key"
-    ) as any;
+    ) as { user: AuthenticatedUser };
 
-    console.log("Token decodificado:", decoded); // Log do token decodificado
-    req.user = decoded.user; // Armazenamos o usuário decodificado no req
+    if (!decoded || !decoded.user) {
+      res.status(401).json({ msg: "Token inválido, usuário não encontrado" });
+      return;
+    }
 
-    next(); // Passa para o próximo middleware ou rota
+    (req as AuthenticatedRequest).user = decoded.user; // Cast para AuthenticatedRequest
+
+    next();
   } catch (err) {
-    console.error("Erro ao verificar token:", err); // Log de erro
+    console.error("Erro ao verificar token:", err);
     res.status(401).json({ msg: "Token inválido" });
-    return; // Retorna para garantir que o tipo de retorno seja `void`
   }
 };
 

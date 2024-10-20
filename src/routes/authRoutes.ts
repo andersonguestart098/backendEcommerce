@@ -1,4 +1,4 @@
-import { Router } from "express";
+import { Router, Request, Response, NextFunction } from "express";
 import { check, validationResult } from "express-validator";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
@@ -7,129 +7,145 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 const router = Router();
 
-// Registro de usuário
-router.post(
-  "/register",
-  [
-    check("email", "Por favor, adicione um email válido").isEmail(),
-    check("password", "A senha deve ter no mínimo 6 caracteres").isLength({
-      min: 6,
-    }),
-    check("name", "Por favor, adicione um nome").not().isEmpty(), // Verificação do campo "name"
-  ],
-  async (req: any, res: any) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
+interface UserRequest extends Request {
+  body: {
+    name: string;
+    email: string;
+    password: string;
+    tipoUsuario: string;
+  };
+}
 
-    const { name, email, password } = req.body; // Incluindo "name"
-
-    try {
-      // Verificar se o usuário já existe
-      let user = await prisma.user.findUnique({ where: { email } });
-      if (user) {
-        return res.status(400).json({ msg: "Usuário já existe" });
-      }
-
-      // Hash da senha
-      const salt = await bcrypt.genSalt(10);
-      const hashedPassword = await bcrypt.hash(password, salt);
-
-      // Criar novo usuário com o nome incluído
-      user = await prisma.user.create({
-        data: {
-          name, // Incluindo o campo "name" aqui
-          email,
-          password: hashedPassword,
-        },
-      });
-
-      // Gerar JWT
-      const payload = {
-        user: {
-          id: user.id,
-        },
-      };
-
-      // Verificar se o JWT_SECRET está definido
-      const jwtSecret = process.env.JWT_SECRET;
-      if (!jwtSecret) {
-        return res
-          .status(500)
-          .json({ msg: "Erro no servidor: JWT_SECRET não configurado" });
-      }
-
-      jwt.sign(
-        payload,
-        jwtSecret,
-        { expiresIn: "1h" },
-        (err: any, token: any) => {
-          if (err) throw err;
-          res.json({ token });
-        }
-      );
-    } catch (err: any) {
-      console.error(err.message);
-      res.status(500).send("Erro no servidor");
-    }
+// Handler para registro de usuário
+const registerHandler = async (req: UserRequest, res: Response, next: NextFunction): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ errors: errors.array() });
+    return;
   }
-);
 
-// Login de usuário
-router.post(
-  "/login",
-  [
-    check("email", "Por favor, adicione um email válido").isEmail(),
-    check("password", "Por favor, insira a senha").exists(),
-  ],
-  async (req: any, res: any) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+  const { name, email, password, tipoUsuario } = req.body;
+
+  try {
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (user) {
+      res.status(400).json({ msg: "Usuário já existe" });
+      return;
     }
 
-    const { email, password } = req.body;
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
 
-    try {
-      let user = await prisma.user.findUnique({ where: { email } });
-      if (!user) {
-        return res.status(400).json({ msg: "Usuário não encontrado" });
-      }
+    user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        tipoUsuario,
+      },
+    });
 
-      const isMatch = await bcrypt.compare(password, user.password);
-      if (!isMatch) {
-        return res.status(400).json({ msg: "Senha inválida" });
-      }
+    const payload = {
+      user: {
+        id: user.id,
+        tipoUsuario: user.tipoUsuario,
+      },
+    };
 
-      const payload = {
-        user: {
-          id: user.id,
-        },
-      };
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      res.status(500).json({ msg: "Erro no servidor: JWT_SECRET não configurado" });
+      return;
+    }
 
-      // Verificar se o JWT_SECRET está definido
-      const jwtSecret = process.env.JWT_SECRET;
-      if (!jwtSecret) {
-        return res
-          .status(500)
-          .json({ msg: "Erro no servidor: JWT_SECRET não configurado" });
-      }
-
-      jwt.sign(
-        payload,
-        jwtSecret,
-        { expiresIn: "100y" },
-        (err: any, token: any) => {
-          if (err) throw err;
-          res.json({ token });
+    jwt.sign(
+      payload,
+      jwtSecret,
+      { expiresIn: "1h" },
+      (err, token) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send("Erro ao gerar token");
+          return;
         }
-      );
-    } catch (err: any) {
-      console.error(err.message);
-      res.status(500).send("Erro no servidor");
-    }
+        res.json({ token });
+      }
+    );
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send("Erro no servidor");
   }
-);
+};
+
+// Handler para login de usuário
+const loginHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    res.status(400).json({ errors: errors.array() });
+    return;
+  }
+
+  const { email, password } = req.body;
+
+  try {
+    let user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      res.status(400).json({ msg: "Usuário não encontrado" });
+      return;
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      res.status(400).json({ msg: "Senha inválida" });
+      return;
+    }
+
+    const payload = {
+      user: {
+        id: user.id,
+        name: user.name, // Inclua o nome do usuário
+        tipoUsuario: user.tipoUsuario,
+      },
+    };
+
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      res.status(500).json({ msg: "Erro no servidor: JWT_SECRET não configurado" });
+      return;
+    }
+
+    jwt.sign(
+      payload,
+      jwtSecret,
+      { expiresIn: "100y" },
+      (err, token) => {
+        if (err) {
+          console.error(err);
+          res.status(500).send("Erro ao gerar token");
+          return;
+        }
+        // Modifique aqui para incluir os dados do usuário na resposta
+        res.json({ token, user: payload.user });
+      }
+    );
+  } catch (err: any) {
+    console.error(err.message);
+    res.status(500).send("Erro no servidor");
+  }
+};
+
+
+// Rotas
+router.post("/register", [
+  check("email", "Por favor, adicione um email válido").isEmail(),
+  check("password", "A senha deve ter no mínimo 6 caracteres").isLength({ min: 6 }),
+  check("name", "Por favor, adicione um nome").not().isEmpty(),
+  check("tipoUsuario", "Por favor, adicione o tipo de usuário").not().isEmpty()
+], (req: any, res: any, next: any) => registerHandler(req as UserRequest, res, next));
+
+router.post("/login", [
+  check("email", "Por favor, adicione um email válido").isEmail(),
+  check("password", "Por favor, insira a senha").exists()
+], loginHandler);
 
 export default router;
