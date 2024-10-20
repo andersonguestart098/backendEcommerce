@@ -27,15 +27,25 @@ model Banner {
 
 model Product {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
-  name        String
-  description String
-  price       Float
-  image       String
-  discount    Int
-  paymentOptions PaymentOption[]
-  colors      Color[]
-  orderProducts OrderProduct[]
+ name           String
+  price          Float
+  description    String
+  discount       Int
+  paymentOptions PaymentOption[]  // Adicione esta linha
+  image          String
+  metersPerBox   Float
+  weightPerBox   Float
+  boxDimensions  String
+  materialType   String
+  freightClass   Int
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  // Relacionamentos
+  colors Color[]
+  orderProducts  OrderProduct[]
 }
+
 
 model Color {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB

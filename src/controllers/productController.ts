@@ -3,135 +3,165 @@ import { PrismaClient } from '@prisma/client';
 import cloudinary from 'cloudinary';
 import multer from 'multer';
 
-// Inicializando o Prisma Client
+// Configure Multer for multiple file uploads
+const storage = multer.diskStorage({});
+export const upload = multer({ storage });
+
+// Function to handle multiple file fields (do not export `.fields()` directly)
+export const createUploadMiddleware = () => {
+  return upload.fields([
+    { name: 'images', maxCount: 5 }, // Ajuste para 'images'
+    { name: 'colors', maxCount: 5 }  // Mantenha 'colors'
+  ]);
+};
+
+// Initialize Prisma Client
 const prisma = new PrismaClient();
 
-// Configurar o Cloudinary
+// Configure Cloudinary
 cloudinary.v2.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// Configurar o Multer para lidar com o upload de múltiplos arquivos
-const storage = multer.diskStorage({});
-export const upload = multer({ storage });
-
-// Função para fazer upload de imagem no Cloudinary com a pasta especificada
+// Function to upload an image to Cloudinary in a specific folder
 const uploadImageToCloudinary = async (filePath: string, folder: string) => {
-    try {
-      const result = await cloudinary.v2.uploader.upload(filePath, {
-        folder,  // Salvar no diretório especificado
-      });
-      return result.secure_url;
-      
-    } catch (error) {
-      console.error('Erro ao fazer upload no Cloudinary:', error);
-      throw new Error('Erro ao fazer upload de imagem');
-    }
-  };
-  
-  export const getAllProducts = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const products = await prisma.product.findMany({
-            include: {
-                colors: true, // Incluindo as cores associadas
-            },
-        });
-        res.json(products);
-    } catch (err) {
-        res.status(500).json({ message: 'Erro ao buscar produtos', error: err });
-    }
+  try {
+    const result = await cloudinary.v2.uploader.upload(filePath, {
+      folder,  // Save in the specified directory
+    });
+    return result.secure_url;
+  } catch (error) {
+    console.error('Error uploading to Cloudinary:', error);
+    throw new Error('Image upload failed');
+  }
 };
 
+// Fetch all products
+export const getAllProducts = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const products = await prisma.product.findMany({
+      include: {
+        colors: true, // Include associated colors
+      },
+    });
+    res.json(products);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching products', error: err });
+  }
+};
 
+// Fetch a product by ID
 export const getProductById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   try {
     const product = await prisma.product.findUnique({
       where: { id },
-      include: { colors: true }, // Incluir as cores ao buscar por ID
+      include: { colors: true }, // Include colors when fetching by ID
     });
     if (!product) {
-      res.status(404).json({ message: 'Produto não encontrado' });
+      res.status(404).json({ message: 'Product not found' });
     } else {
       res.json(product);
     }
   } catch (err) {
-    res.status(500).json({ message: 'Erro ao buscar produto', error: err });
+    res.status(500).json({ message: 'Error fetching product', error: err });
   }
 };
 
+// Create a new product
+// Create a new product
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
-    const { name, price, description, discount, paymentOptions, colorNames } = req.body;
+  const {
+    name, price, description, discount, paymentOptions,
+    colorNames, metersPerBox, weightPerBox, boxDimensions,
+    materialType, freightClass
+  } = req.body;
 
-    try {
-        const files = req.files as { [fieldname: string]: Express.Multer.File[] }; 
-        
-        if (!files || !files['image'] || files['image'].length === 0) {
-            res.status(400).json({ message: 'Imagem principal não enviada' });
-            return;
-        }
+  try {
+    const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-        if (!files['colors'] || files['colors'].length === 0 || !colorNames || colorNames.length === 0) {
-            res.status(400).json({ message: 'Nenhuma cor ou nome de cor foi enviado' });
-            return;
-        }
-
-        const imageFile = files['image'][0]; 
-        const colorFiles = files['colors']; 
-        const colorNamesArray = Array.isArray(colorNames) ? colorNames : [colorNames]; // Garantir que seja array
-
-        if (colorFiles.length !== colorNamesArray.length) {
-            res.status(400).json({ message: 'O número de imagens de cores e nomes deve ser igual.' });
-            return;
-        }
-
-        // Logando o processamento de cada cor
-        console.log("Processando imagem principal:", imageFile.filename);
-        console.log("Processando cores:");
-
-        colorFiles.forEach((file, index) => {
-            console.log(`Cor ${index + 1}:`, file.filename, colorNamesArray[index]);
-        });
-
-        const imageUrl = await uploadImageToCloudinary(imageFile.path, 'product_images');
-
-        const newProduct = await prisma.product.create({
-            data: {
-                name,
-                price: parseFloat(price),
-                description,
-                discount: parseInt(discount),
-                paymentOptions: paymentOptions.split(/\s*,\s*/),
-                image: imageUrl,
-            },
-        });
-
-        await Promise.all(
-            colorFiles.map(async (file, index) => {
-                const colorImageUrl = await uploadImageToCloudinary(file.path, 'pisoColors');
-                const colorName = colorNamesArray[index];
-                await prisma.color.create({
-                    data: {
-                        name: colorName,
-                        image: colorImageUrl,
-                        productId: newProduct.id,
-                    },
-                });
-            })
-        );
-
-        const updatedProduct = await prisma.product.findUnique({
-            where: { id: newProduct.id },
-            include: {
-                colors: true,
-            },
-        });
-
-        res.status(201).json(updatedProduct);
-    } catch (err) {
-        console.error('Erro ao criar produto:', err);
-        res.status(500).json({ message: 'Erro ao criar produto', error: err });
+    // Check if main images are sent
+    if (!files || !files['images'] || files['images'].length === 0) {
+      res.status(400).json({ message: 'Main images not sent' });
+      return;
     }
+
+    // Validate color images and names
+    if (!files['colors'] || files['colors'].length === 0 || !colorNames || colorNames.length === 0) {
+      res.status(400).json({ message: 'No color or color name sent' });
+      return;
+    }
+
+    const imageFiles = files['images'];
+    const colorFiles = files['colors'];
+    const colorNamesArray = Array.isArray(colorNames) ? colorNames : [colorNames];
+
+    if (colorFiles.length !== colorNamesArray.length) {
+      res.status(400).json({ message: 'The number of color images and names must match.' });
+      return;
+    }
+
+    // Upload main images to Cloudinary
+    const imageUrls = await Promise.all(
+      imageFiles.map((file: Express.Multer.File) => uploadImageToCloudinary(file.path, 'product_images'))
+    );
+
+    // Create the Product first
+    const newProduct = await prisma.product.create({
+      data: {
+        name,
+        price: parseFloat(price),
+        description,
+        discount: parseInt(discount),
+        image: JSON.stringify(imageUrls),
+        metersPerBox: parseFloat(metersPerBox),
+        weightPerBox: parseFloat(weightPerBox),
+        boxDimensions,
+        materialType,
+        freightClass: parseInt(freightClass),
+      },
+    });
+
+    // Now create the PaymentOptions separately and link them to the Product
+    if (Array.isArray(paymentOptions)) {
+      await Promise.all(
+        paymentOptions.map(async (option: string) => {
+          await prisma.paymentOption.create({
+            data: {
+              option, // Use the option field correctly
+              productId: newProduct.id, // Relaciona ao ID do produto recém-criado
+            },
+          });
+        })
+      );
+    }
+
+    // Upload color images and save in the database
+    await Promise.all(
+      colorFiles.map(async (file: Express.Multer.File, index: number) => {
+        const colorImageUrl = await uploadImageToCloudinary(file.path, 'pisoColors');
+        const colorName = colorNamesArray[index];
+        await prisma.color.create({
+          data: {
+            name: colorName,
+            image: colorImageUrl,
+            productId: newProduct.id,
+          },
+        });
+      })
+    );
+
+    // Fetch and return the created product with associated colors and payment options
+    const updatedProduct = await prisma.product.findUnique({
+      where: { id: newProduct.id },
+      include: { colors: true, paymentOptions: true },
+    });
+
+    res.status(201).json(updatedProduct);
+  } catch (err) {
+    console.error('Error creating product:', err);
+    res.status(500).json({ message: 'Error creating product', error: err });
+  }
 };
