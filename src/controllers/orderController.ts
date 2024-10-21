@@ -10,7 +10,6 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
-// Fetch all orders (admin or user-specific)
 export const getAllOrders = async (req: Request, res: Response): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.user.id;
@@ -19,7 +18,6 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
   try {
     let orders;
     if (req.path === '/me' && userRole !== 'admin') {
-      // Fetch orders for the specific user
       orders = await prisma.order.findMany({
         where: { userId },
         include: {
@@ -31,7 +29,6 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
         },
       });
     } else {
-      // Fetch all orders (admin)
       orders = await prisma.order.findMany({
         include: {
           products: {
@@ -43,7 +40,6 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
       });
     }
 
-    // Remove invalid entries before returning
     const refinedOrders = orders.map(order => ({
       ...order,
       products: order.products.filter(orderProduct => orderProduct.product !== null),
@@ -51,10 +47,10 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
 
     res.json(refinedOrders);
   } catch (err) {
+    console.error("Database query error:", err); // Added logging for better troubleshooting
     res.status(500).json({ message: "Error fetching orders" });
   }
 };
-
 
 
 // Fetch a specific order by ID
