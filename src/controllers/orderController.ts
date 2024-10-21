@@ -10,17 +10,16 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+// Fetch all orders (admin or user-specific)
 export const getAllOrders = async (req: Request, res: Response): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.user.id;
   const userRole = authReq.user.tipoUsuario;
 
-  console.log("Buscando pedidos para:", { userId, userRole });
-
   try {
     let orders;
     if (req.path === '/me' && userRole !== 'admin') {
-      console.log(`Usuário não é admin, buscando pedidos para o userId: ${userId}`);
+      // Fetch orders for the specific user
       orders = await prisma.order.findMany({
         where: { userId },
         include: {
@@ -32,7 +31,7 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
         },
       });
     } else {
-      console.log("Usuário é admin, buscando todos os pedidos...");
+      // Fetch all orders (admin)
       orders = await prisma.order.findMany({
         include: {
           products: {
@@ -44,22 +43,21 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
       });
     }
 
-    // Filtrar produtos nulos e remover entradas inválidas antes de retornar
+    // Remove invalid entries before returning
     const refinedOrders = orders.map(order => ({
       ...order,
       products: order.products.filter(orderProduct => orderProduct.product !== null),
     }));
 
-    console.log("Pedidos encontrados:", refinedOrders);
     res.json(refinedOrders);
   } catch (err) {
-    console.error("Erro ao buscar pedidos:", err);
-    res.status(500).json({ message: "Erro ao buscar pedidos" });
+    res.status(500).json({ message: "Error fetching orders" });
   }
 };
 
 
-// Função para buscar um pedido por ID
+
+// Fetch a specific order by ID
 export const getOrderById = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const authReq = req as AuthenticatedRequest;
@@ -79,11 +77,11 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
     });
 
     if (!order || (order.userId !== userId && userRole !== "admin")) {
-      res.status(403).json({ message: "Acesso negado" });
+      res.status(403).json({ message: "Access Denied" });
       return;
     }
 
-    // Verificar e remover produtos `null`
+    // Remove invalid entries
     const refinedOrder = {
       ...order,
       products: order.products.filter(orderProduct => orderProduct.product !== null),
@@ -91,12 +89,11 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
 
     res.json(refinedOrder);
   } catch (err) {
-    console.error("Erro ao buscar pedido:", err);
-    res.status(500).json({ message: "Erro ao buscar pedido" });
+    res.status(500).json({ message: "Error fetching order" });
   }
 };
 
-// Função para criar novo pedido
+// Create a new order
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
   const { products, totalPrice } = req.body;
@@ -125,29 +122,27 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 
     res.status(201).json(order);
   } catch (err) {
-    console.error("Erro ao criar pedido:", err);
-    res.status(500).json({ message: "Erro ao criar pedido" });
+    res.status(500).json({ message: "Error creating order" });
   }
 };
 
-// Função para atualizar o status do pedido
+
+// Update order status (Admin only)
 export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { status } = req.body;
   const authReq = req as AuthenticatedRequest;
   const userRole = authReq.user.tipoUsuario;
 
-  console.log("Tentando atualizar status para:", status);
-
   const validStatuses = ["PENDING", "PAYMENT_APPROVED", "AWAITING_STOCK_CONFIRMATION", "SEPARATED", "DISPATCHED", "DELIVERED", "CANCELED"];
 
   if (!validStatuses.includes(status)) {
-    res.status(400).json({ message: "Status inválido" });
+    res.status(400).json({ message: "Invalid status" });
     return;
   }
 
   if (userRole !== "admin") {
-    res.status(403).json({ message: "Acesso negado: apenas administradores podem alterar o status do pedido" });
+    res.status(403).json({ message: "Access denied: only admins can change order status" });
     return;
   }
 
@@ -157,9 +152,8 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
       data: { status },
     });
 
-    res.json({ message: "Status atualizado com sucesso", order });
+    res.json({ message: "Status updated successfully", order });
   } catch (err) {
-    console.error("Erro ao atualizar o status do pedido:", err);
-    res.status(500).json({ message: "Erro ao atualizar o status do pedido" });
+    res.status(500).json({ message: "Error updating order status" });
   }
 };

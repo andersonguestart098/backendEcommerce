@@ -1,19 +1,18 @@
-// productRoutes.ts
 import { Router } from 'express';
 import { getAllProducts, getProductById, createProduct, upload } from '../controllers/productController';
 
 const router = Router();
 
 const uploadMiddleware = upload.fields([
-    { name: 'images', maxCount: 5 }, // Altere para 'images'
-    { name: 'colors', maxCount: 10 }, // Mantenha 'colors'
+  { name: 'images', maxCount: 5 },
+  { name: 'colors', maxCount: 10 },
 ]);
 
-// Rotas para produtos
-router.get('/', getAllProducts);
+// Product routes
+router.get('/', getAllProducts); // Adjusted to handle query parameters for search & filters
 router.get('/:id', getProductById);
 
-// Rota para criação de produto com upload de imagem
+// Route for creating product with image upload
 router.post('/', uploadMiddleware, createProduct);
 
 export default router;

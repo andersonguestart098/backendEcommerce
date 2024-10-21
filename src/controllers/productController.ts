@@ -38,14 +38,49 @@ const uploadImageToCloudinary = async (filePath: string, folder: string) => {
   }
 };
 
-// Fetch all products
 export const getAllProducts = async (req: Request, res: Response): Promise<void> => {
+  const { search, color, minPrice, maxPrice } = req.query;
+
   try {
-    const products = await prisma.product.findMany({
+    const query: any = {
+      where: {},
       include: {
-        colors: true, // Include associated colors
+        colors: true,
       },
-    });
+    };
+
+    if (search) {
+      query.where.name = {
+        contains: String(search),
+        mode: 'insensitive',
+      };
+    }
+
+    if (color) {
+      query.where.colors = {
+        some: {
+          name: {
+            contains: String(color),
+            mode: 'insensitive',
+          },
+        },
+      };
+    }
+
+    if (minPrice) {
+      query.where.price = {
+        gte: parseFloat(String(minPrice)),
+      };
+    }
+
+    if (maxPrice) {
+      query.where.price = {
+        ...query.where.price,
+        lte: parseFloat(String(maxPrice)),
+      };
+    }
+
+    const products = await prisma.product.findMany(query);
     res.json(products);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching products', error: err });
@@ -70,7 +105,7 @@ export const getProductById = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// Create a new product
+
 // Create a new product
 export const createProduct = async (req: Request, res: Response): Promise<void> => {
   const {
