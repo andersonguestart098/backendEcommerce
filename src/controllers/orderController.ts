@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
+import { emitOrderStatusUpdate } from "..";
 
 const prisma = new PrismaClient();
 
@@ -123,14 +124,21 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 };
 
 
-// Update order status (Admin only)
 export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { status } = req.body;
   const authReq = req as AuthenticatedRequest;
   const userRole = authReq.user.tipoUsuario;
 
-  const validStatuses = ["PENDING", "PAYMENT_APPROVED", "AWAITING_STOCK_CONFIRMATION", "SEPARATED", "DISPATCHED", "DELIVERED", "CANCELED"];
+  const validStatuses = [
+    "PENDING",
+    "PAYMENT_APPROVED",
+    "AWAITING_STOCK_CONFIRMATION",
+    "SEPARATED",
+    "DISPATCHED",
+    "DELIVERED",
+    "CANCELED",
+  ];
 
   if (!validStatuses.includes(status)) {
     res.status(400).json({ message: "Invalid status" });
@@ -147,6 +155,9 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
       where: { id },
       data: { status },
     });
+
+    // Emit the update event
+    emitOrderStatusUpdate(order.id, status, order.userId);
 
     res.json({ message: "Status updated successfully", order });
   } catch (err) {
