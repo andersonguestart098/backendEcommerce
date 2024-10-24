@@ -35,6 +35,12 @@ app.use(
 
 app.use(express.json());
 
+app.get("/", (req, res) => {
+  res.send(
+    "Servidor funcionando. Use as rotas apropriadas para acessar os recursos."
+  );
+});
+
 // Rotas
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);

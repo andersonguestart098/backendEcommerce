@@ -9,49 +9,88 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.createOrder = exports.getOrderById = exports.getAllOrders = void 0;
-const client_1 = require("@prisma/client"); // Usando o Prisma para a conexão com MongoDB
+exports.updateOrderStatus = exports.createOrder = exports.getOrderById = exports.getAllOrders = void 0;
+const client_1 = require("@prisma/client");
+const __1 = require("..");
 const prisma = new client_1.PrismaClient();
 const getAllOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const authReq = req;
+    const userId = authReq.user.id;
+    const userRole = authReq.user.tipoUsuario;
     try {
-        const orders = yield prisma.order.findMany({
-            include: { products: true }, // Inclui os produtos relacionados no pedido
-        });
-        res.json(orders);
+        let orders;
+        if (req.path === '/me' && userRole !== 'admin') {
+            orders = yield prisma.order.findMany({
+                where: { userId },
+                include: {
+                    products: {
+                        include: {
+                            product: true,
+                        },
+                    },
+                },
+            });
+        }
+        else {
+            orders = yield prisma.order.findMany({
+                include: {
+                    products: {
+                        include: {
+                            product: true,
+                        },
+                    },
+                },
+            });
+        }
+        const refinedOrders = orders.map(order => (Object.assign(Object.assign({}, order), { products: order.products.filter(orderProduct => orderProduct.product !== null) })));
+        res.json(refinedOrders);
     }
     catch (err) {
-        res.status(500).json({ message: 'Erro ao buscar pedidos' });
+        console.error("Database query error:", err); // Added logging for better troubleshooting
+        res.status(500).json({ message: "Error fetching orders" });
     }
 });
 exports.getAllOrders = getAllOrders;
+// Fetch a specific order by ID
 const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
+    const authReq = req;
+    const userId = authReq.user.id;
+    const userRole = authReq.user.tipoUsuario;
     try {
         const order = yield prisma.order.findUnique({
             where: { id },
-            include: { products: true }, // Inclui os produtos relacionados no pedido
+            include: {
+                products: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
         });
-        if (!order) {
-            res.status(404).json({ message: 'Pedido não encontrado' });
+        if (!order || (order.userId !== userId && userRole !== "admin")) {
+            res.status(403).json({ message: "Access Denied" });
+            return;
         }
-        else {
-            res.json(order);
-        }
+        // Remove invalid entries
+        const refinedOrder = Object.assign(Object.assign({}, order), { products: order.products.filter(orderProduct => orderProduct.product !== null) });
+        res.json(refinedOrder);
     }
     catch (err) {
-        res.status(500).json({ message: 'Erro ao buscar pedido' });
+        res.status(500).json({ message: "Error fetching order" });
     }
 });
 exports.getOrderById = getOrderById;
+// Create a new order
 const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    const authReq = req;
     const { products, totalPrice } = req.body;
-    const userId = (_a = req.user) === null || _a === void 0 ? void 0 : _a.id; // Captura o ID do usuário autenticado
+    const userId = authReq.user.id;
     try {
         const order = yield prisma.order.create({
             data: {
-                userId, // Relaciona o pedido ao usuário autenticado
-                totalPrice, // Valor total do pedido
+                userId,
+                totalPrice,
                 products: {
                     create: products.map((product) => ({
                         productId: product.id,
@@ -59,12 +98,55 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                     })),
                 },
             },
-            include: { products: true },
+            include: {
+                products: {
+                    include: {
+                        product: true,
+                    },
+                },
+            },
         });
         res.status(201).json(order);
     }
     catch (err) {
-        res.status(500).json({ message: 'Erro ao criar pedido' });
+        res.status(500).json({ message: "Error creating order" });
     }
 });
 exports.createOrder = createOrder;
+const updateOrderStatus = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const { id } = req.params;
+    const { status } = req.body;
+    const authReq = req;
+    const userRole = authReq.user.tipoUsuario;
+    const validStatuses = [
+        "PENDING",
+        "PAYMENT_APPROVED",
+        "AWAITING_STOCK_CONFIRMATION",
+        "SEPARATED",
+        "DISPATCHED",
+        "DELIVERED",
+        "CANCELED",
+    ];
+    if (!validStatuses.includes(status)) {
+        res.status(400).json({ message: "Invalid status" });
+        return;
+    }
+    if (userRole !== "admin") {
+        res.status(403).json({ message: "Access denied: only admins can change order status" });
+        return;
+    }
+    try {
+        const order = yield prisma.order.update({
+            where: { id },
+            data: { status },
+        });
+        // Emit the update event
+        (0, __1.emitOrderStatusUpdate)(order.id, status, order.userId); // Ensure emit function has access to WebSocket logic
+        res.json({ message: "Status updated successfully", order });
+    }
+    catch (err) {
+        console.error("Error updating order status:", err);
+        res.status(500).json({ message: "Error updating order status" });
+    }
+});
+exports.updateOrderStatus = updateOrderStatus;

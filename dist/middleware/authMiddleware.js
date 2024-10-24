@@ -8,16 +8,20 @@ const authMiddleware = (req, res, next) => {
     const token = req.headers["x-auth-token"];
     if (!token) {
         res.status(401).json({ msg: "Sem token, autorização negada" });
-        return; // Certifique-se de retornar para que a função não continue
+        return;
     }
     try {
         const decoded = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET || "default-secret-key");
-        req.user = decoded.user; // Armazenamos o usuário decodificado no req
-        next(); // Passa para o próximo middleware ou rota
+        if (!decoded || !decoded.user) {
+            res.status(401).json({ msg: "Token inválido, usuário não encontrado" });
+            return;
+        }
+        req.user = decoded.user; // Cast para AuthenticatedRequest
+        next();
     }
     catch (err) {
+        console.error("Erro ao verificar token:", err);
         res.status(401).json({ msg: "Token inválido" });
-        return; // Retorna para garantir que o tipo de retorno seja `void`
     }
 };
 exports.default = authMiddleware;

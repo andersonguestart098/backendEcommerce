@@ -45,13 +45,14 @@ const getUserById = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
 });
 exports.getUserById = getUserById;
 const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email, password } = req.body;
+    const { name, email, password, tipoUsuario } = req.body; // Incluindo tipoUsuario
     try {
         const newUser = yield prisma.user.create({
             data: {
                 name,
                 email,
                 password,
+                tipoUsuario, // Certifique-se de fornecer tipoUsuario
             },
         });
         res.status(201).json(newUser);
@@ -63,7 +64,7 @@ const createUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
 exports.createUser = createUser;
 // Função de registro de usuário com bcrypt
 const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const { name, email, password } = req.body;
+    const { name, email, password, tipoUsuario } = req.body; // Incluindo tipoUsuario
     try {
         // Verifica se o usuário já existe
         const existingUser = yield prisma.user.findUnique({
@@ -82,6 +83,7 @@ const registerUser = (req, res) => __awaiter(void 0, void 0, void 0, function* (
                 name,
                 email,
                 password: hashedPassword,
+                tipoUsuario, // Incluindo tipoUsuario
             },
         });
         res.status(201).json(newUser);
