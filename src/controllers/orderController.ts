@@ -124,6 +124,7 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
 };
 
 
+
 export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
   const { status } = req.body;
@@ -157,10 +158,11 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     });
 
     // Emit the update event
-    emitOrderStatusUpdate(order.id, status, order.userId);
+    emitOrderStatusUpdate(order.id, status, order.userId); // Ensure emit function has access to WebSocket logic
 
     res.json({ message: "Status updated successfully", order });
   } catch (err) {
+    console.error("Error updating order status:", err);
     res.status(500).json({ message: "Error updating order status" });
   }
 };

@@ -63,6 +63,8 @@ const emitOrderStatusUpdate = (orderId: string, newStatus: string, userId: strin
   io.to(userId).emit("orderStatusUpdated", { orderId, status: newStatus });
 };
 
+
+
 // Porta do servidor
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
