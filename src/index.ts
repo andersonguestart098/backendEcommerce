@@ -35,6 +35,10 @@ app.use(
 
 app.use(express.json());
 
+app.get("/", authMiddleware, (req, res) => {
+  res.send("Bem-vindo ao servidor!");
+});
+
 // Rotas
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
