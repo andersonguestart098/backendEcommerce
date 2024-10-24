@@ -22,7 +22,6 @@ const io = new Server(server, {
   },
 });
 
-// Configurar o CORS
 app.use(
   cors({
     origin: [
