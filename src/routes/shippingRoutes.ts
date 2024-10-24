@@ -22,7 +22,7 @@ const getAccessToken = async () => {
       "Erro ao obter access token:",
       error.response?.data || error.message
     );
-    throw new Error("Falha ao autenticar");
+    throw new Error("Falha ao autenticar na API do Melhor Envio");
   }
 };
 
