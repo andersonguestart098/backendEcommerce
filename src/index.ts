@@ -18,16 +18,20 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:3000",
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE"],
   },
 });
 
 // Configurar o CORS
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "https://frontend-ecommerce-1ukirvdcj-andersonguestart098s-projects.vercel.app",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+    credentials: true, // Enable if you need to send cookies with requests
   })
 );
 
@@ -52,8 +56,6 @@ app.get("/test-env", (req, res) => {
     apiUrl: process.env.MELHOR_ENVIO_API_URL,
   });
 });
-
-
 
 // WebSockets
 io.on("connection", (socket) => {
