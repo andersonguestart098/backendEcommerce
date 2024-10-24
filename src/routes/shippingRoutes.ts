@@ -64,4 +64,28 @@ router.post("/calculate", async (req, res) => {
   }
 });
 
+router.get("/callback", async (req, res) => {
+  const authorizationCode = req.query.code;
+  // Troca o código de autorização pelo token de acesso
+  try {
+    const response = await axios.post(
+      `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
+      {
+        client_id: process.env.MELHOR_ENVIO_CLIENT_ID,
+        client_secret: process.env.MELHOR_ENVIO_SECRET,
+        grant_type: "authorization_code",
+        code: authorizationCode,
+        redirect_uri:
+          "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/callback",
+      }
+    );
+
+    // Armazena o token e redireciona conforme necessário
+    res.json(response.data);
+  } catch (error) {
+    console.error("Erro no callback:", error);
+    res.status(500).send("Erro ao processar autorização");
+  }
+});
+
 export default router;

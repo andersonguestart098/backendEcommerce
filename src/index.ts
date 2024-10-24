@@ -53,6 +53,8 @@ app.get("/test-env", (req, res) => {
   });
 });
 
+
+
 // WebSockets
 io.on("connection", (socket) => {
   console.log("Novo cliente conectado:", socket.id);
