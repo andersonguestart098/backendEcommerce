@@ -35,10 +35,6 @@ app.use(
 
 app.use(express.json());
 
-app.get("/", authMiddleware, (req, res) => {
-  res.send("Bem-vindo ao servidor!");
-});
-
 // Rotas
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
@@ -46,6 +42,10 @@ app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
+
+app.get("/", (req, res) => {
+  res.send("Welcome to the E-commerce API");
+});
 
 app.get("/private-route", authMiddleware, (req, res) => {
   res.send("Acesso autorizado");
