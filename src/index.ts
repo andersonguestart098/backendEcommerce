@@ -8,9 +8,9 @@ import userRoutes from "./routes/userRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import authRoutes from "./routes/authRoutes";
 import authMiddleware from "./middleware/authMiddleware";
-
 import dotenv from "dotenv";
 import shippingRoutes from "./routes/shippingRoutes";
+
 dotenv.config();
 
 const app = express();
@@ -44,7 +44,9 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Welcome to the E-commerce API");
+  res.send(
+    "Servidor rodando. Acesse as rotas configuradas para mais funcionalidades."
+  );
 });
 
 app.get("/private-route", authMiddleware, (req, res) => {
