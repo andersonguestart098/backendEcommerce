@@ -8,8 +8,9 @@ import userRoutes from "./routes/userRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import authRoutes from "./routes/authRoutes";
 import authMiddleware from "./middleware/authMiddleware";
-import dotenv from "dotenv";
 
+import dotenv from "dotenv";
+import shippingRoutes from "./routes/shippingRoutes";
 dotenv.config();
 
 const app = express();
@@ -38,9 +39,18 @@ app.use("/banners", bannerRoutes);
 app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
+app.use("/shipping", shippingRoutes);
 
 app.get("/private-route", authMiddleware, (req, res) => {
   res.send("Acesso autorizado");
+});
+
+app.get("/test-env", (req, res) => {
+  res.json({
+    clientId: process.env.MELHOR_ENVIO_CLIENT_ID,
+    secret: process.env.MELHOR_ENVIO_SECRET,
+    apiUrl: process.env.MELHOR_ENVIO_API_URL,
+  });
 });
 
 // WebSockets
@@ -58,12 +68,14 @@ io.on("connection", (socket) => {
 });
 
 // Emit event when the order status changes
-const emitOrderStatusUpdate = (orderId: string, newStatus: string, userId: string) => {
+const emitOrderStatusUpdate = (
+  orderId: string,
+  newStatus: string,
+  userId: string
+) => {
   // Emit only to the specific user related to the order
   io.to(userId).emit("orderStatusUpdated", { orderId, status: newStatus });
 };
-
-
 
 // Porta do servidor
 const PORT = process.env.PORT || 3001;
