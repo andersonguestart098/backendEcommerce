@@ -5,6 +5,7 @@ import dotenv from "dotenv";
 dotenv.config();
 const router = express.Router();
 
+// Função para obter o token de acesso do Melhor Envio
 const getAccessToken = async () => {
   try {
     const response = await axios.post(
@@ -58,15 +59,19 @@ router.post("/calculate", async (req, res) => {
     );
 
     res.json(response.data);
-  } catch (error) {
-    console.error("Erro ao calcular frete:", error);
+  } catch (error: any) {
+    console.error(
+      "Erro ao calcular frete:",
+      error.response?.data || error.message
+    );
     res.status(500).send("Erro ao calcular frete");
   }
 });
 
+// Endpoint para callback de autorização (OAuth)
 router.get("/callback", async (req, res) => {
   const authorizationCode = req.query.code;
-  // Troca o código de autorização pelo token de acesso
+
   try {
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
@@ -82,8 +87,8 @@ router.get("/callback", async (req, res) => {
 
     // Armazena o token e redireciona conforme necessário
     res.json(response.data);
-  } catch (error) {
-    console.error("Erro no callback:", error);
+  } catch (error: any) {
+    console.error("Erro no callback:", error.response?.data || error.message);
     res.status(500).send("Erro ao processar autorização");
   }
 });
