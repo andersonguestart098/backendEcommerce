@@ -10,8 +10,9 @@ let melhorEnvioToken: string = ""; // Inicializado como string vazia
 let tokenExpiration: number | null = null;
 
 // Função para obter o token de acesso do Melhor Envio
+// Function to get the Melhor Envio access token
 const getAccessToken = async (): Promise<string> => {
-  // Se o token existir e ainda for válido, reutilize-o
+  // Reuse the token if it exists and is still valid
   if (melhorEnvioToken && tokenExpiration && tokenExpiration > Date.now()) {
     return melhorEnvioToken;
   }
@@ -38,38 +39,41 @@ const getAccessToken = async (): Promise<string> => {
       );
     }
 
-    // Salvar o token e definir o tempo de expiração
+    // Save the token and set the expiration time
     melhorEnvioToken = response.data.access_token;
-    tokenExpiration = Date.now() + response.data.expires_in * 1000; // `expires_in` está em segundos
+    tokenExpiration = Date.now() + response.data.expires_in * 1000; // `expires_in` is in seconds
 
     console.log("Access Token obtido com sucesso:", melhorEnvioToken);
     return melhorEnvioToken;
   } catch (error: any) {
-    console.error(
-      "Erro ao obter token de acesso:",
-      error.response?.data || error.message
-    );
+    // Improved error logging for better debugging
+    if (error.response) {
+      console.error(
+        "Erro na resposta da API:",
+        error.response.data || error.response.statusText
+      );
+    } else if (error.request) {
+      console.error("Nenhuma resposta foi recebida da API:", error.request);
+    } else {
+      console.error("Erro ao configurar a requisição:", error.message);
+    }
     throw new Error(
       "Falha ao autenticar na API do Melhor Envio. Tente novamente."
     );
   }
 };
 
-// Middleware para fornecer o token de acesso
+// Middleware to provide the Melhor Envio access token
 const obterMelhorEnvioToken = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
     res.json({ token });
   } catch (error) {
+    console.error("Erro ao fornecer o token de acesso:", error);
     res.status(500).send("Erro ao obter o token de acesso");
   }
 };
-
-// Endpoint para calcular frete
-const calculateShipping = async (
-  req: Request,
-  res: Response
-): Promise<void> => {
+const calculateShipping = async (req: Request, res: Response) => {
   const { cepDestino, produtos } = req.body;
 
   if (!cepDestino || !produtos || produtos.length === 0) {
@@ -104,13 +108,13 @@ const calculateShipping = async (
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
       {
-        from: { postal_code: process.env.CEP_DE_ORIGEM || "00000000" }, // Substitua pelo CEP real de origem
+        from: { postal_code: process.env.CEP_DE_ORIGEM || "00000000" }, // Use a real origin postal code
         to: { postal_code: cepDestino },
         products: filteredProducts,
       },
       {
         headers: {
-          Authorization: `Bearer ${melhorEnvioToken}`,
+          Authorization: `Bearer ${melhorEnvioToken}`, // Correctly pass the token here
           "Content-Type": "application/json",
         },
       }
