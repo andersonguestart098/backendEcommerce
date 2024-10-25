@@ -27,7 +27,7 @@ app.use(
     origin: [
       "http://localhost:3000",
       "http://localhost:3001",
-      "https://ecommerce-1brwvkwf8-andersonguestart098s-projects.vercel.app",
+      "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
