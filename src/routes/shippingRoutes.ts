@@ -106,15 +106,25 @@ const calculateShipping = async (req: Request, res: Response) => {
     console.log("Produtos filtrados para a API:", filteredProducts);
 
     const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
+      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/shipping/calculate",
       {
-        from: { postal_code: process.env.CEP_DE_ORIGEM || "00000000" }, // Use a real origin postal code
-        to: { postal_code: cepDestino },
-        products: filteredProducts,
+        cepDestino: "12345678", // Exemplo de CEP de destino
+        produtos: [
+          {
+            id: "produto1",
+            width: 30,
+            height: 20,
+            length: 40,
+            weight: 2,
+            price: 50,
+            quantity: 1,
+          },
+          // Outros produtos se necessário
+        ],
       },
       {
         headers: {
-          Authorization: `Bearer ${melhorEnvioToken}`,
+          Authorization: `Bearer ${melhorEnvioToken}`, // Corrigido para usar melhorEnvioToken
           "Content-Type": "application/json",
         },
       }
