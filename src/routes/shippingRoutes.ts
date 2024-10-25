@@ -13,14 +13,14 @@ const getAccessToken = async (): Promise<string> => {
       method: "POST",
       url: `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
       headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
+        "Content-Type": "application/x-www-form-urlencoded", // Verifique se o tipo de conteúdo está correto
       },
       data: new URLSearchParams({
         client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
         client_secret: process.env.MELHOR_ENVIO_SECRET || "",
         grant_type: "client_credentials",
       }).toString(),
-      timeout: 10000,
+      timeout: 10000, // Timeout de 10 segundos
     });
 
     if (response.status !== 200 || !response.data.access_token) {
@@ -34,19 +34,13 @@ const getAccessToken = async (): Promise<string> => {
   } catch (error: any) {
     if (error.response) {
       console.error(
-        "Erro na resposta da API (obtenção do token):",
+        "Erro na resposta da API:",
         error.response.data || error.response.statusText
       );
     } else if (error.request) {
-      console.error(
-        "Nenhuma resposta foi recebida da API (obtenção do token):",
-        error.request
-      );
+      console.error("Nenhuma resposta foi recebida da API:", error.request);
     } else {
-      console.error(
-        "Erro ao configurar a requisição (obtenção do token):",
-        error.message
-      );
+      console.error("Erro ao configurar a requisição:", error.message);
     }
 
     throw new Error(
@@ -63,21 +57,23 @@ const calculateShipping = async (
 ): Promise<void> => {
   const { cepDestino, produtos } = req.body;
 
-  console.log("Requisição recebida para calcular frete:");
-  console.log("CEP de destino:", cepDestino);
-  console.log("Produtos:", JSON.stringify(produtos, null, 2));
-
   if (!cepDestino || !produtos || produtos.length === 0) {
-    console.log("Dados inválidos: CEP ou produtos não fornecidos.");
+    console.log("Dados incompletos para cálculo de frete.");
     res.status(400).send("CEP de destino e produtos são necessários.");
     return;
   }
 
+  console.log("CEP de destino recebido:", cepDestino);
+  console.log(
+    "Produtos recebidos para cálculo de frete:",
+    JSON.stringify(produtos, null, 2)
+  );
+
   try {
     console.log("Obtendo token de acesso do Melhor Envio...");
     const melhorEnvioToken = await getAccessToken();
-
     console.log("Token obtido, iniciando cálculo de frete...");
+
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
       {
@@ -101,7 +97,7 @@ const calculateShipping = async (
       }
     );
 
-    console.log("Cálculo de frete realizado com sucesso:", response.data);
+    console.log("Resposta do cálculo de frete:", response.data);
     res.json(response.data);
   } catch (error: any) {
     console.error(
