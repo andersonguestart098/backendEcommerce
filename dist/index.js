@@ -21,21 +21,30 @@ const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
 const io = new socket_io_1.Server(server, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
+            "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
+        ],
         methods: ["GET", "POST", "PUT", "DELETE"],
+        allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+        credentials: true, // Permitir credenciais se necessário
     },
 });
 app.use((0, cors_1.default)({
     origin: [
         "http://localhost:3000",
-        "https://frontend-ecommerce-1ukirvdcj-andersonguestart098s-projects.vercel.app",
+        "http://localhost:3001",
+        "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
+        "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
 }));
 app.use(express_1.default.json());
 app.get("/", (req, res) => {
-    res.send("Servidor funcionando. Use as rotas apropriadas para acessar os recursos.");
+    res.send("Servidor funcionando.");
 });
 // Rotas
 app.use("/products", productRoutes_1.default);
