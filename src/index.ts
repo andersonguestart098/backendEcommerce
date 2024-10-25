@@ -38,9 +38,7 @@ app.use(
 app.use(express.json());
 
 app.get("/", (req, res) => {
-  res.send(
-    "Servidor funcionando. Use as rotas apropriadas para acessar os recursos."
-  );
+  res.send("Servidor funcionando.");
 });
 
 // Rotas
