@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 
@@ -6,39 +6,82 @@ dotenv.config();
 const router = express.Router();
 
 // Função para obter o token de acesso do Melhor Envio
-const getAccessToken = async () => {
+const getAccessToken = async (): Promise<string> => {
   try {
-    const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
-      {
-        client_id: process.env.MELHOR_ENVIO_CLIENT_ID,
-        client_secret: process.env.MELHOR_ENVIO_SECRET,
+    console.log("Iniciando a obtenção do token de acesso...");
+    const response = await axios({
+      method: "POST",
+      url: `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      data: new URLSearchParams({
+        client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
+        client_secret: process.env.MELHOR_ENVIO_SECRET || "",
         grant_type: "client_credentials",
-      }
-    );
-    console.log("Access Token:", response.data.access_token);
+      }).toString(),
+      timeout: 10000,
+    });
+
+    if (response.status !== 200 || !response.data.access_token) {
+      throw new Error(
+        "Falha ao obter o token de acesso. Verifique as credenciais."
+      );
+    }
+
+    console.log("Access Token obtido com sucesso:", response.data.access_token);
     return response.data.access_token;
   } catch (error: any) {
-    console.error(
-      "Erro ao obter access token:",
-      error.response?.data || error.message
+    if (error.response) {
+      console.error(
+        "Erro na resposta da API (obtenção do token):",
+        error.response.data || error.response.statusText
+      );
+    } else if (error.request) {
+      console.error(
+        "Nenhuma resposta foi recebida da API (obtenção do token):",
+        error.request
+      );
+    } else {
+      console.error(
+        "Erro ao configurar a requisição (obtenção do token):",
+        error.message
+      );
+    }
+
+    throw new Error(
+      "Falha ao autenticar na API do Melhor Envio. Tente novamente."
     );
-    throw new Error("Falha ao autenticar na API do Melhor Envio");
   }
 };
 
 // Endpoint para calcular frete
-router.post("/calculate", async (req, res) => {
+const calculateShipping = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   const { cepDestino, produtos } = req.body;
 
+  console.log("Requisição recebida para calcular frete:");
+  console.log("CEP de destino:", cepDestino);
+  console.log("Produtos:", JSON.stringify(produtos, null, 2));
+
+  if (!cepDestino || !produtos || produtos.length === 0) {
+    console.log("Dados inválidos: CEP ou produtos não fornecidos.");
+    res.status(400).send("CEP de destino e produtos são necessários.");
+    return;
+  }
+
   try {
-    // Obtenha o token antes de fazer a requisição
+    console.log("Obtendo token de acesso do Melhor Envio...");
     const melhorEnvioToken = await getAccessToken();
 
+    console.log("Token obtido, iniciando cálculo de frete...");
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
       {
-        from: { postal_code: "CEP_DE_ORIGEM" },
+        from: { postal_code: "CEP_DE_ORIGEM" }, // Substitua pelo CEP real de origem
         to: { postal_code: cepDestino },
         products: produtos.map((produto: any) => ({
           id: produto.id,
@@ -58,6 +101,7 @@ router.post("/calculate", async (req, res) => {
       }
     );
 
+    console.log("Cálculo de frete realizado com sucesso:", response.data);
     res.json(response.data);
   } catch (error: any) {
     console.error(
@@ -66,31 +110,9 @@ router.post("/calculate", async (req, res) => {
     );
     res.status(500).send("Erro ao calcular frete");
   }
-});
+};
 
-// Endpoint para callback de autorização (OAuth)
-router.get("/callback", async (req, res) => {
-  const authorizationCode = req.query.code;
-
-  try {
-    const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
-      {
-        client_id: process.env.MELHOR_ENVIO_CLIENT_ID,
-        client_secret: process.env.MELHOR_ENVIO_SECRET,
-        grant_type: "authorization_code",
-        code: authorizationCode,
-        redirect_uri:
-          "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/callback",
-      }
-    );
-
-    // Armazena o token e redireciona conforme necessário
-    res.json(response.data);
-  } catch (error: any) {
-    console.error("Erro no callback:", error.response?.data || error.message);
-    res.status(500).send("Erro ao processar autorização");
-  }
-});
+// Adicionando funções ao router
+router.post("/calculate", calculateShipping);
 
 export default router;
