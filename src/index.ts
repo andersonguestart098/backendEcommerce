@@ -26,7 +26,7 @@ app.use(
   cors({
     origin: [
       "http://localhost:3000",
-      "https://frontend-ecommerce-1ukirvdcj-andersonguestart098s-projects.vercel.app",
+      "https://ecommerce-n6s4arlxr-andersonguestart098s-projects.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
