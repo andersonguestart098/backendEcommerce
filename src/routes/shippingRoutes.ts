@@ -133,6 +133,7 @@ const calculateShipping = async (req: Request, res: Response) => {
 
 // Adicionando funções ao router
 router.post("/calculate", calculateShipping);
+router.get("/calculate", calculateShipping);
 router.get("/token", obterMelhorEnvioToken);
 
 export default router;
