@@ -5,8 +5,17 @@ import dotenv from "dotenv";
 dotenv.config();
 const router = express.Router();
 
+// Variáveis para armazenar o token e a validade
+let melhorEnvioToken: string = ""; // Inicializado como string vazia
+let tokenExpiration: number | null = null;
+
 // Função para obter o token de acesso do Melhor Envio
 const getAccessToken = async (): Promise<string> => {
+  // Se o token existir e ainda for válido, reutilize-o
+  if (melhorEnvioToken && tokenExpiration && tokenExpiration > Date.now()) {
+    return melhorEnvioToken;
+  }
+
   try {
     console.log("Iniciando a obtenção do token de acesso...");
     const response = await axios({
@@ -20,7 +29,7 @@ const getAccessToken = async (): Promise<string> => {
         client_secret: process.env.MELHOR_ENVIO_SECRET || "",
         grant_type: "client_credentials",
       }).toString(),
-      timeout: 10000, // Timeout de 10 segundos
+      timeout: 10000,
     });
 
     if (response.status !== 200 || !response.data.access_token) {
@@ -29,31 +38,37 @@ const getAccessToken = async (): Promise<string> => {
       );
     }
 
-    console.log("Access Token obtido com sucesso:", response.data.access_token);
-    return response.data.access_token;
-  } catch (error: any) {
-    if (error.response) {
-      console.error(
-        "Erro na resposta da API:",
-        error.response.data || error.response.statusText
-      );
-    } else if (error.request) {
-      console.error("Nenhuma resposta foi recebida da API:", error.request);
-    } else {
-      console.error("Erro ao configurar a requisição:", error.message);
-    }
+    // Salvar o token e definir o tempo de expiração
+    melhorEnvioToken = response.data.access_token;
+    tokenExpiration = Date.now() + response.data.expires_in * 1000; // `expires_in` está em segundos
 
+    console.log("Access Token obtido com sucesso:", melhorEnvioToken);
+    return melhorEnvioToken;
+  } catch (error: any) {
+    console.error(
+      "Erro ao obter token de acesso:",
+      error.response?.data || error.message
+    );
     throw new Error(
       "Falha ao autenticar na API do Melhor Envio. Tente novamente."
     );
   }
 };
 
+// Middleware para fornecer o token de acesso
+const obterMelhorEnvioToken = async (req: Request, res: Response) => {
+  try {
+    const token = await getAccessToken();
+    res.json({ token });
+  } catch (error) {
+    res.status(500).send("Erro ao obter o token de acesso");
+  }
+};
+
 // Endpoint para calcular frete
 const calculateShipping = async (
   req: Request,
-  res: Response,
-  next: NextFunction
+  res: Response
 ): Promise<void> => {
   const { cepDestino, produtos } = req.body;
 
@@ -89,7 +104,7 @@ const calculateShipping = async (
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
       {
-        from: { postal_code: "CEP_DE_ORIGEM" }, // Substitua pelo CEP real de origem
+        from: { postal_code: process.env.CEP_DE_ORIGEM || "00000000" }, // Substitua pelo CEP real de origem
         to: { postal_code: cepDestino },
         products: filteredProducts,
       },
@@ -114,5 +129,6 @@ const calculateShipping = async (
 
 // Adicionando funções ao router
 router.post("/calculate", calculateShipping);
+router.get("/token", obterMelhorEnvioToken);
 
 export default router;
