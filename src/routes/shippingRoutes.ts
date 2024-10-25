@@ -114,7 +114,7 @@ const calculateShipping = async (req: Request, res: Response) => {
       },
       {
         headers: {
-          Authorization: `Bearer ${melhorEnvioToken}`, // Correctly pass the token here
+          Authorization: `Bearer ${melhorEnvioToken}`,
           "Content-Type": "application/json",
         },
       }
