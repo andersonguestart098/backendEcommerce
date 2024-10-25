@@ -17,8 +17,15 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:3000",
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
+      "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+    credentials: true, // Permitir credenciais se necessário
   },
 });
 
