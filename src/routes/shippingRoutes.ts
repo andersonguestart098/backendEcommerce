@@ -21,7 +21,6 @@ const isTokenExpired = (): boolean => {
 };
 
 const refreshToken = async (): Promise<void> => {
-  console.log("Iniciando a renovação do token de acesso...");
   try {
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
@@ -73,12 +72,16 @@ const calculateShipping = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
 
+    // Criando o corpo da requisição com o formato correto
     const requestBody = {
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
-      products: products,
-      options: {},
-      volumes: [] 
+      package: {
+        height: products[0].height,
+        width: products[0].width,
+        length: products[0].length,
+        weight: products[0].weight
+      }
     };
 
     const response = await axios.post(
