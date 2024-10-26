@@ -84,7 +84,10 @@ const obterMelhorEnvioToken = async (req: Request, res: Response): Promise<void>
 
 // Função para calcular o frete
 const calculateShipping = async (req: Request, res: Response) => {
-  const { cepOrigem, cepDestino, produtos } = req.body;
+  const cepOrigem = req.query.cepOrigem as string;
+  const cepDestino = req.query.cepDestino as string;
+  const produtos = JSON.parse(req.query.produtos as string);
+
   console.log("Iniciando cálculo de frete...");
   console.log("Dados recebidos:", { cepOrigem, cepDestino, produtos });
 
@@ -92,19 +95,27 @@ const calculateShipping = async (req: Request, res: Response) => {
     const token = await getAccessToken();
     console.log("Token de acesso obtido:", token);
 
-    // Convertendo o array de produtos para uma string JSON e codificando para URL
-    const produtosEncoded = encodeURIComponent(JSON.stringify(produtos));
+    // Montando o corpo da requisição conforme a documentação
+    const requestBody = {
+      from: { postal_code: cepOrigem },
+      to: { postal_code: cepDestino },
+      products: produtos,
+      options: {}, // Adicione opções específicas aqui, se necessário
+      volumes: [] // Adicione volumes específicos aqui, se necessário
+    };
 
-    // Construindo a URL com os parâmetros de consulta
-    const url = `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/quote?from[postal_code]=${cepOrigem}&to[postal_code]=${cepDestino}&products=${produtosEncoded}`;
-
-    // Enviando a requisição GET para a API de cálculo de frete
-    const response = await axios.get(url, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await axios.post(
+      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
+      requestBody,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+          "User-Agent": "Aplicação (email@example.com)" // Substitua com seu email
+        }
+      }
+    );
 
     console.log("Resposta da API de cálculo de frete:", response.data);
     res.json(response.data);
@@ -120,7 +131,6 @@ const calculateShipping = async (req: Request, res: Response) => {
     res.status(500).send("Erro ao calcular frete");
   }
 };
-
 
 
 // Definição das rotas
