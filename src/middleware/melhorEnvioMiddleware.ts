@@ -9,39 +9,49 @@ let tokenExpiration: number | null = null;
 
 // Função para obter o token de acesso do Melhor Envio
 const getAccessToken = async (): Promise<string> => {
+  // Verifica se o token ainda é válido
   if (melhorEnvioToken && tokenExpiration && tokenExpiration > Date.now()) {
-    return melhorEnvioToken; // Se o token ainda for válido, reutilize-o
+    console.log("Token de acesso ainda válido, reutilizando o token existente.");
+    return melhorEnvioToken;
   }
 
   try {
     console.log("Iniciando a obtenção do token de acesso...");
-    const response = await axios({
-      method: "POST",
-      url: `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      data: new URLSearchParams({
+    
+    // Envia a requisição para obter o token
+    const response = await axios.post(
+      `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
+      new URLSearchParams({
         client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
         client_secret: process.env.MELHOR_ENVIO_SECRET || "",
         grant_type: "client_credentials",
       }).toString(),
-      timeout: 10000,
-    });
+      {
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        timeout: 10000,
+      }
+    );
 
-    if (response.status !== 200 || !response.data.access_token) {
-      throw new Error("Falha ao obter o token de acesso. Verifique as credenciais.");
+    // Verifica se a resposta contém o token de acesso
+    if (response.status === 200 && response.data.access_token) {
+      melhorEnvioToken = response.data.access_token;
+      tokenExpiration = Date.now() + response.data.expires_in * 1000; // `expires_in` está em segundos
+      console.log("Access Token obtido com sucesso:", melhorEnvioToken);
+    } else {
+      console.error("Falha ao obter o token de acesso. Status da resposta:", response.status);
+      throw new Error("Falha ao obter o token de acesso.");
     }
 
-    // Salvar o token e configurar o tempo de expiração
-    melhorEnvioToken = response.data.access_token;
-    tokenExpiration = Date.now() + response.data.expires_in * 1000; // `expires_in` é dado em segundos
-
-    console.log("Access Token obtido com sucesso:", melhorEnvioToken);
     return melhorEnvioToken;
   } catch (error: any) {
-    console.error("Erro ao obter token de acesso:", error.response?.data || error.message);
-    throw new Error("Falha ao autenticar na API do Melhor Envio. Tente novamente.");
+    if (error.response) {
+      console.error("Erro na resposta da API ao obter o token:", error.response.data);
+    } else if (error.request) {
+      console.error("Nenhuma resposta recebida da API ao obter o token:", error.request);
+    } else {
+      console.error("Erro ao configurar a requisição para obter o token:", error.message);
+    }
+    throw new Error("Falha ao autenticar na API do Melhor Envio. Verifique as credenciais.");
   }
 };
 
