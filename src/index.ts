@@ -1,7 +1,7 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import cors from "cors";
+import corsMiddleware from "./middleware/corsMiddleware"; // Importando o middleware CORS
 import productRoutes from "./routes/productRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
 import userRoutes from "./routes/userRoutes";
@@ -26,22 +26,11 @@ const io = new Server(server, {
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
-    credentials: true, // Permitir credenciais se necessário
+    credentials: true,
   },
 });
 
-app.use(cors({
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
-    "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
-  credentials: true,
-}));
-
+// Use o middleware CORS importado
 app.use(corsMiddleware);
 
 app.use(express.json());
@@ -49,8 +38,6 @@ app.use(express.json());
 app.get("/", (req, res) => {
   res.send("Servidor funcionando.");
 });
-
-
 
 // Rotas
 app.use("/products", productRoutes);
