@@ -92,21 +92,19 @@ const calculateShipping = async (req: Request, res: Response) => {
     const token = await getAccessToken();
     console.log("Token de acesso obtido:", token);
 
-    // Enviando a requisição POST para a API de cálculo de frete
-    const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/quote`,
-      {
-        from: { postal_code: cepOrigem },
-        to: { postal_code: cepDestino },
-        products: produtos,
+    // Convertendo o array de produtos para uma string JSON e codificando para URL
+    const produtosEncoded = encodeURIComponent(JSON.stringify(produtos));
+
+    // Construindo a URL com os parâmetros de consulta
+    const url = `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/quote?from[postal_code]=${cepOrigem}&to[postal_code]=${cepDestino}&products=${produtosEncoded}`;
+
+    // Enviando a requisição GET para a API de cálculo de frete
+    const response = await axios.get(url, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
       },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    });
 
     console.log("Resposta da API de cálculo de frete:", response.data);
     res.json(response.data);
