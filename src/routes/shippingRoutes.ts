@@ -87,7 +87,7 @@ const calculateShipping = async (req: Request, res: Response) => {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          "User-Agent": "Aplicação (anderson.guestart98@gmail.com)" // Insira seu email de contato
+          "User-Agent": "Aplicação anderson.guestart98@gmail.com" // Insira seu email de contato
         }
       }
     );
