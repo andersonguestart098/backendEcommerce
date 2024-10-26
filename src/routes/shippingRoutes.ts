@@ -1,10 +1,10 @@
+// shippingRoutes.ts
 import express, { Request, Response, NextFunction } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 
 dotenv.config();
 const router = express.Router();
-
 
 console.log("Arquivo shippingRoutes.ts foi carregado.");
 
@@ -18,6 +18,7 @@ const isTokenExpired = (): boolean => {
   return !tokenExpiration || Date.now() + bufferTime >= tokenExpiration;
 };
 
+// Função para renovar o token de acesso
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Renovando token de acesso...");
@@ -55,7 +56,6 @@ const refreshToken = async (): Promise<void> => {
   }
 };
 
-
 // Função para obter o token de acesso
 const getAccessToken = async (): Promise<string> => {
   if (!melhorEnvioToken || isTokenExpired()) {
@@ -77,19 +77,19 @@ const obterMelhorEnvioToken = async (req: Request, res: Response): Promise<void>
 
 // Função para calcular o frete
 const calculateShipping = async (req: Request, res: Response): Promise<void> => {
-  const { cepOrigem, cepDestino, produtos } = req.body;
+  const { cepOrigem, cepDestino, produtos } = req.query;
 
-  if (!cepOrigem || !cepDestino || !produtos || produtos.length === 0) {
+  if (!cepOrigem || !cepDestino || !produtos) {
     res.status(400).send("CEP de origem, destino e produtos são necessários.");
     return;
   }
 
   try {
     const melhorEnvioToken = await getAccessToken();
-    const response = await axios.post(
+    const response = await axios.get(
       `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`,
-      { cepOrigem, cepDestino, produtos },
       {
+        params: { cepOrigem, cepDestino, produtos },
         headers: {
           Authorization: `Bearer ${melhorEnvioToken}`,
           "Content-Type": "application/json",
@@ -105,11 +105,10 @@ const calculateShipping = async (req: Request, res: Response): Promise<void> => 
 };
 
 // Definição das rotas
-router.post("/calculate", calculateShipping);
+router.get("/calculate", calculateShipping);
 router.get("/token", obterMelhorEnvioToken);
 router.get("/test", (req: Request, res: Response) => {
   res.send("Rota de teste funcionando.");
 });
-
 
 export default router;
