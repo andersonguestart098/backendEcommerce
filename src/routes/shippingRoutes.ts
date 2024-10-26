@@ -84,9 +84,10 @@ const calculateShipping = async (req: Request, res: Response) => {
 
   try {
     const melhorEnvioToken = await getAccessToken();
+    const query = new URLSearchParams({ cepDestino, produtos: JSON.stringify(produtos) }).toString();
+
     const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`, // Certifique-se de que o endpoint é correto
-      { cepDestino, produtos },
+      `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate?${query}`, // Alteração para GET
       {
         headers: {
           Authorization: `Bearer ${melhorEnvioToken}`,
@@ -102,6 +103,7 @@ const calculateShipping = async (req: Request, res: Response) => {
     res.status(500).send("Erro ao calcular frete");
   }
 };
+
 
 // Adicionando funções ao router
 router.post("/calculate", calculateShipping);
