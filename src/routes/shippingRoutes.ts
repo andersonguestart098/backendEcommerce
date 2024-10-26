@@ -1,4 +1,4 @@
-import express, { Request, Response } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 
@@ -56,21 +56,26 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
-const calculateShipping = async (req: Request, res: Response) => {
+const calculateShipping = async (req: Request, res: Response, next: NextFunction) => {
   const { cepOrigem, cepDestino, products } = req.body;
 
   try {
+    if (!products || !Array.isArray(products) || products.length === 0) {
+      return res.status(400).json({ error: "Lista de produtos inválida ou vazia." });
+    }
+
     const token = await getAccessToken();
     console.log("Token de acesso obtido:", token);
 
+    const product = products[0]; // Pega o primeiro produto para o cálculo de frete
     const requestBody = {
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
       package: {
-        height: products[0].height || 1,
-        width: products[0].width || 1,
-        length: products[0].length || 1,
-        weight: products[0].weight || 0.1,
+        height: product.height || 1,
+        width: product.width || 1,
+        length: product.length || 1,
+        weight: product.weight || 0.1,
       },
     };
     console.log("Corpo da requisição para cálculo de frete:", requestBody);
@@ -88,7 +93,7 @@ const calculateShipping = async (req: Request, res: Response) => {
     );
     
     console.log("Resposta da API de cálculo de frete:", response.data);
-    res.json(response.data);
+    return res.json(response.data);
   } catch (error: any) {
     if (error.response) {
       console.error("Erro na resposta da API de cálculo de frete:", error.response.data);
@@ -99,10 +104,11 @@ const calculateShipping = async (req: Request, res: Response) => {
       console.error("Erro ao configurar a requisição de cálculo de frete:", error.message);
     }
     res.status(500).send("Erro ao calcular frete");
+    next(error);
   }
 };
 
-router.post("/calculate", calculateShipping);
+router.post("/calculate", calculateShipping as express.RequestHandler);
 router.get("/token", async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
