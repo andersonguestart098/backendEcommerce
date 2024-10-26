@@ -29,14 +29,14 @@ const getApiUrl = (): string => {
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Renovando o token...");
-    const apiUrl = process.env.MELHOR_ENVIO_API_URL || "https://api.melhorenvio.com.br";
-    
+    const apiUrl = getApiUrl();
+
     const response = await axios.post(
       `${apiUrl}/oauth/token`,
       new URLSearchParams({
         client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
         client_secret: process.env.MELHOR_ENVIO_SECRET || "",
-        grant_type: "client_credentials"
+        grant_type: "client_credentials",
       }).toString(),
       {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -56,6 +56,7 @@ const refreshToken = async (): Promise<void> => {
   }
 };
 
+// Função para obter o token de acesso, renovando-o se necessário
 const getAccessToken = async (): Promise<string> => {
   console.log("Obtendo token de acesso...");
   if (!melhorEnvioToken || isTokenExpired()) {
@@ -67,13 +68,15 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
-const calculateShipping = async (req: express.Request, res: express.Response) => {
+// Função para calcular o frete
+const calculateShipping = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
     console.log("Token obtido para requisição:", token);
 
+    const apiUrl = getApiUrl();
     const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
+      `${apiUrl}/api/v2/me/shipment/calculate`,
       {
         from: { postal_code: req.body.cepOrigem },
         to: { postal_code: req.body.cepDestino },
@@ -109,7 +112,7 @@ const calculateShipping = async (req: express.Request, res: express.Response) =>
 router.post("/calculate", calculateShipping as express.RequestHandler);
 
 // Rota para verificar o token atual (opcional, para debugging)
-router.get("/token", async (req: express.Request, res: express.Response) => {
+router.get("/token", async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
     res.json({ token });
@@ -117,4 +120,5 @@ router.get("/token", async (req: express.Request, res: express.Response) => {
     res.status(500).send("Erro ao obter o token de acesso");
   }
 });
+
 export default router;
