@@ -1,4 +1,3 @@
-// middleware/corsMiddleware.ts
 import cors from "cors";
 
 const corsOptions = {

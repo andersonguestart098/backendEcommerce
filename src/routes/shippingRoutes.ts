@@ -85,7 +85,7 @@ const calculateShipping = async (req: Request, res: Response) => {
   try {
     const melhorEnvioToken = await getAccessToken();
     const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`,
+      `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`, // Certifique-se de que o endpoint é correto
       { cepDestino, produtos },
       {
         headers: {
