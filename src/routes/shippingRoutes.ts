@@ -73,70 +73,32 @@ const obterMelhorEnvioToken = async (req: Request, res: Response) => {
     res.status(500).send("Erro ao obter o token de acesso");
   }
 };
+
 const calculateShipping = async (req: Request, res: Response) => {
   const { cepDestino, produtos } = req.body;
 
   if (!cepDestino || !produtos || produtos.length === 0) {
-    console.log("Dados incompletos para cálculo de frete.");
     res.status(400).send("CEP de destino e produtos são necessários.");
     return;
   }
 
-  console.log("CEP de destino recebido:", cepDestino);
-  console.log(
-    "Produtos recebidos para cálculo de frete:",
-    JSON.stringify(produtos, null, 2)
-  );
-
   try {
-    console.log("Obtendo token de acesso do Melhor Envio...");
     const melhorEnvioToken = await getAccessToken();
-    console.log("Token obtido, iniciando cálculo de frete...");
-
-    const filteredProducts = produtos.map((produto: any) => ({
-      id: produto.id,
-      width: produto.width,
-      height: produto.height,
-      length: produto.length,
-      weight: produto.weight,
-      insurance_value: produto.price * produto.quantity,
-      quantity: produto.quantity,
-    }));
-
-    console.log("Produtos filtrados para a API:", filteredProducts);
-
     const response = await axios.post(
-      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/shipping/calculate",
-      {
-        cepDestino: "12345678", // Exemplo de CEP de destino
-        produtos: [
-          {
-            id: "produto1",
-            width: 30,
-            height: 20,
-            length: 40,
-            weight: 2,
-            price: 50,
-            quantity: 1,
-          },
-          // Outros produtos se necessário
-        ],
-      },
+      `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`,
+      { cepDestino, produtos },
       {
         headers: {
-          Authorization: `Bearer ${melhorEnvioToken}`, // Corrigido para usar melhorEnvioToken
+          Authorization: `Bearer ${melhorEnvioToken}`,
           "Content-Type": "application/json",
+          "User-Agent": "MyApp (contato@exemplo.com)",
         },
       }
     );
 
-    console.log("Resposta do cálculo de frete:", response.data);
     res.json(response.data);
   } catch (error: any) {
-    console.error(
-      "Erro ao calcular frete:",
-      error.response?.data || error.message
-    );
+    console.error("Erro ao calcular frete:", error.response?.data || error.message);
     res.status(500).send("Erro ao calcular frete");
   }
 };
