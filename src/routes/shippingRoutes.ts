@@ -1,4 +1,3 @@
-// shippingRoutes.ts
 import express, { Request, Response } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -8,19 +7,16 @@ const router = express.Router();
 
 console.log("Arquivo shippingRoutes.ts foi carregado.");
 
-// Variáveis para armazenar o token e a validade
 let melhorEnvioToken: string = ""; 
 let tokenExpiration: number | null = null;
 
-// Função para verificar se o token está próximo de expirar
 const isTokenExpired = (): boolean => {
-  const bufferTime = 5 * 60 * 1000; // Considera o token expirado se faltar menos de 5 minutos para expirar
+  const bufferTime = 5 * 60 * 1000;
   const isExpired = !tokenExpiration || Date.now() + bufferTime >= tokenExpiration;
   console.log(`Token está expirado? ${isExpired}`);
   return isExpired;
 };
 
-// Função para renovar o token
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Iniciando a renovação do token de acesso...");
@@ -49,7 +45,6 @@ const refreshToken = async (): Promise<void> => {
   }
 };
 
-// Função para obter o token de acesso
 const getAccessToken = async (): Promise<string> => {
   console.log("Obtendo token de acesso...");
   if (!melhorEnvioToken || isTokenExpired()) {
@@ -61,7 +56,6 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
-// Função para calcular o frete
 const calculateShipping = async (req: Request, res: Response) => {
   const { cepOrigem, cepDestino, products } = req.body;
 
@@ -69,16 +63,15 @@ const calculateShipping = async (req: Request, res: Response) => {
     const token = await getAccessToken();
     console.log("Token de acesso obtido:", token);
 
-    // Criando o corpo da requisição com o formato correto
     const requestBody = {
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
       package: {
-        height: products[0].height,
-        width: products[0].width,
-        length: products[0].length,
-        weight: products[0].weight
-      }
+        height: products[0].height || 1,
+        width: products[0].width || 1,
+        length: products[0].length || 1,
+        weight: products[0].weight || 0.1,
+      },
     };
     console.log("Corpo da requisição para cálculo de frete:", requestBody);
 
@@ -89,7 +82,7 @@ const calculateShipping = async (req: Request, res: Response) => {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          "User-Agent": "Aplicação anderson.guestart98@gmail.com" // Insira seu email de contato
+          "User-Agent": "Aplicação anderson.guestart98@gmail.com"
         }
       }
     );
@@ -109,7 +102,6 @@ const calculateShipping = async (req: Request, res: Response) => {
   }
 };
 
-// Define as rotas
 router.post("/calculate", calculateShipping);
 router.get("/token", async (req: Request, res: Response) => {
   try {
