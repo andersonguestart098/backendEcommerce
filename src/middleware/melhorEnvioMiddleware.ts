@@ -4,7 +4,7 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
-let melhorEnvioToken: string = ""; // Inicialize como string vazia
+let melhorEnvioToken: string = "";
 let tokenExpiration: number | null = null;
 
 // Função para obter o token de acesso do Melhor Envio
@@ -17,7 +17,7 @@ const getAccessToken = async (): Promise<string> => {
 
   try {
     console.log("Iniciando a obtenção do token de acesso...");
-    
+
     // Envia a requisição para obter o token
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
