@@ -56,11 +56,22 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
+// Função para extrair produtos de cada pacote
+const extractProductsFromPackages = (packages: any[]): any[] => {
+  return packages.flatMap((pkg) => pkg.products || []);
+};
+
 const calculateShipping = async (req: Request, res: Response, next: NextFunction) => {
-  const { cepOrigem, cepDestino, products } = req.body;
+  const { cepOrigem, cepDestino, packages } = req.body;
 
   try {
-    if (!products || !Array.isArray(products) || products.length === 0) {
+    if (!packages || !Array.isArray(packages) || packages.length === 0) {
+      return res.status(400).json({ error: "Lista de pacotes inválida ou vazia." });
+    }
+
+    // Extraia os produtos de cada pacote
+    const products = extractProductsFromPackages(packages);
+    if (products.length === 0) {
       return res.status(400).json({ error: "Lista de produtos inválida ou vazia." });
     }
 
@@ -72,10 +83,10 @@ const calculateShipping = async (req: Request, res: Response, next: NextFunction
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
       package: {
-        height: product.height || 1,
-        width: product.width || 1,
-        length: product.length || 1,
-        weight: product.weight || 0.1,
+        height: packages[0].dimensions.height || 1,
+        width: packages[0].dimensions.width || 1,
+        length: packages[0].dimensions.length || 1,
+        weight: packages[0].weight || 0.1,
       },
     };
     console.log("Corpo da requisição para cálculo de frete:", requestBody);
