@@ -1,3 +1,4 @@
+// Arquivo: middleware/melhorEnvioMiddleware.ts
 import express, { Request, Response, NextFunction, RequestHandler } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -9,10 +10,15 @@ let tokenExpiration: number | null = null;
 
 // Função para obter o token de acesso do Melhor Envio
 const getAccessToken = async (): Promise<string> => {
-  // Verifica se o token ainda é válido
+  // Verifique se o token está disponível e ainda válido
   if (melhorEnvioToken && tokenExpiration && tokenExpiration > Date.now()) {
     console.log("Token de acesso ainda válido, reutilizando o token existente.");
     return melhorEnvioToken;
+  }
+
+  // Verificação adicional das variáveis de ambiente
+  if (!process.env.MELHOR_ENVIO_CLIENT_ID || !process.env.MELHOR_ENVIO_SECRET) {
+    throw new Error("As credenciais do Melhor Envio não estão definidas no ambiente.");
   }
 
   try {
@@ -20,10 +26,10 @@ const getAccessToken = async (): Promise<string> => {
 
     // Envia a requisição para obter o token
     const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
+      `${process.env.MELHOR_ENVIO_API_URL || "https://api.melhorenvio.com.br"}/oauth/token`,
       new URLSearchParams({
-        client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
-        client_secret: process.env.MELHOR_ENVIO_SECRET || "",
+        client_id: process.env.MELHOR_ENVIO_CLIENT_ID,
+        client_secret: process.env.MELHOR_ENVIO_SECRET,
         grant_type: "client_credentials",
       }).toString(),
       {
@@ -32,10 +38,10 @@ const getAccessToken = async (): Promise<string> => {
       }
     );
 
-    // Verifica se a resposta contém o token de acesso
+    // Processa a resposta
     if (response.status === 200 && response.data.access_token) {
       melhorEnvioToken = response.data.access_token;
-      tokenExpiration = Date.now() + response.data.expires_in * 1000; // `expires_in` está em segundos
+      tokenExpiration = Date.now() + response.data.expires_in * 1000;
       console.log("Access Token obtido com sucesso:", melhorEnvioToken);
     } else {
       console.error("Falha ao obter o token de acesso. Status da resposta:", response.status);
@@ -59,7 +65,6 @@ const getAccessToken = async (): Promise<string> => {
 const autenticarComMelhorEnvio: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const token = await getAccessToken();
-    // Anexa o token ao objeto `req` para que outras rotas possam acessá-lo
     req.headers.authorization = `Bearer ${token}`;
     next();
   } catch (error) {
@@ -68,7 +73,7 @@ const autenticarComMelhorEnvio: RequestHandler = async (req: Request, res: Respo
   }
 };
 
-// Middleware para fornecer o token diretamente (se necessário)
+// Middleware opcional para fornecer o token diretamente
 const fornecerMelhorEnvioToken: RequestHandler = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
