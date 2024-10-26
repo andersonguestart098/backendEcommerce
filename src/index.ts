@@ -39,8 +39,10 @@ app.use(
     ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+    credentials: true, // Se necessário
   })
 );
+
 
 app.use(express.json());
 
