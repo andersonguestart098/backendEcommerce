@@ -29,9 +29,10 @@ const getApiUrl = (): string => {
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Renovando o token...");
-
+    const apiUrl = process.env.MELHOR_ENVIO_API_URL || "https://api.melhorenvio.com.br";
+    
     const response = await axios.post(
-      `${getApiUrl()}/oauth/token`,
+      `${apiUrl}/oauth/token`,
       new URLSearchParams({
         client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
         client_secret: process.env.MELHOR_ENVIO_SECRET || "",
@@ -55,7 +56,6 @@ const refreshToken = async (): Promise<void> => {
   }
 };
 
-// Função para obter o token de acesso, renovando-o se necessário
 const getAccessToken = async (): Promise<string> => {
   console.log("Obtendo token de acesso...");
   if (!melhorEnvioToken || isTokenExpired()) {
@@ -67,14 +67,13 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
-// Função para calcular o frete usando o token obtido
-const calculateShipping = async (req: Request, res: Response) => {
+const calculateShipping = async (req: express.Request, res: express.Response) => {
   try {
     const token = await getAccessToken();
     console.log("Token obtido para requisição:", token);
 
     const response = await axios.post(
-      `${getApiUrl()}/api/v2/me/shipment/calculate`,
+      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
       {
         from: { postal_code: req.body.cepOrigem },
         to: { postal_code: req.body.cepDestino },
@@ -106,11 +105,11 @@ const calculateShipping = async (req: Request, res: Response) => {
   }
 };
 
-// Rota para calcular o frete
+// Rota para cálculo de frete
 router.post("/calculate", calculateShipping as express.RequestHandler);
 
-// Rota para obter o token manualmente (para teste)
-router.get("/token", async (req: Request, res: Response) => {
+// Rota para verificar o token atual (opcional, para debugging)
+router.get("/token", async (req: express.Request, res: express.Response) => {
   try {
     const token = await getAccessToken();
     res.json({ token });
@@ -118,5 +117,4 @@ router.get("/token", async (req: Request, res: Response) => {
     res.status(500).send("Erro ao obter o token de acesso");
   }
 });
-
 export default router;
