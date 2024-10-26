@@ -18,17 +18,18 @@ const isTokenExpired = (): boolean => {
   return isExpired;
 };
 
-// Função para renovar o token de acesso
+const getApiUrl = (): string => {
+  const env = process.env.MELHOR_ENVIO_ENV;
+  return env === "production"
+    ? process.env.MELHOR_ENVIO_PROD_API_URL!
+    : process.env.MELHOR_ENVIO_API_URL!;
+};
+
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Renovando o token...");
-
-    const apiUrl = process.env.MELHOR_ENVIO_ENV === "production"
-      ? "https://api.melhorenvio.com.br/oauth/token"
-      : "https://sandbox.melhorenvio.com.br/oauth/token";
-
     const response = await axios.post(
-      apiUrl,
+      `${getApiUrl()}/oauth/token`,
       new URLSearchParams({
         client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
         client_secret: process.env.MELHOR_ENVIO_SECRET || "",
@@ -48,9 +49,10 @@ const refreshToken = async (): Promise<void> => {
     }
   } catch (error: any) {
     console.error("Erro ao renovar o token:", error.message);
-    throw new Error("Erro ao renovar o token. Verifique as credenciais e o ambiente.");
+    throw new Error("Erro ao renovar o token.");
   }
 };
+
 
 // Função principal para obter o token de acesso, com renovação automática
 const getAccessToken = async (): Promise<string> => {
@@ -68,13 +70,14 @@ const getAccessToken = async (): Promise<string> => {
 const extractPackagesFromBody = (body: any): any[] => {
   return Array.isArray(body.packages) ? body.packages : [];
 };
+
 const calculateShipping = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
     console.log("Token obtido para requisição:", token);
 
     const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`, // Use o sandbox para teste
+      `${getApiUrl()}/api/v2/me/shipment/calculate`,
       {
         from: { postal_code: req.body.cepOrigem },
         to: { postal_code: req.body.cepDestino },
@@ -105,7 +108,6 @@ const calculateShipping = async (req: Request, res: Response) => {
     }
   }
 };
-
 
 
 router.post("/calculate", calculateShipping as express.RequestHandler);
