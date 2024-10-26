@@ -66,17 +66,21 @@ const calculateShipping = async (req: Request, res: Response, next: NextFunction
   const body = req.body;
 
   try {
-    // Extraia os pacotes do corpo principal
+    const token = await getAccessToken();
+    console.log("Token de acesso obtido:", token);  // Log do token para verificar
+
+    // Verifique se cepOrigem e cepDestino estão definidos
+    if (!cepOrigem || !cepDestino) {
+      return res.status(400).json({ error: "CEP de origem ou destino ausente." });
+    }
+
     const packages = extractPackagesFromBody(body);
 
     if (!packages || packages.length === 0) {
       return res.status(400).json({ error: "Lista de pacotes inválida ou vazia." });
     }
 
-    const token = await getAccessToken();
-    console.log("Token de acesso obtido:", token);
-
-    const packageData = packages[0]; // Pega o primeiro pacote para o cálculo de frete
+    const packageData = packages[0];
     const requestBody = {
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
