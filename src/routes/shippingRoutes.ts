@@ -1,6 +1,7 @@
 import express, { Request, Response } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
+import { autenticarComMelhorEnvio } from "../middleware/melhorEnvioMiddleware";
 
 dotenv.config();
 const router = express.Router();
@@ -108,8 +109,8 @@ const calculateShipping = async (req: Request, res: Response) => {
   }
 };
 
-// Rota para cálculo de frete
-router.post("/calculate", calculateShipping as express.RequestHandler);
+// Rota para cálculo de frete com autenticação
+router.post("/calculate", autenticarComMelhorEnvio, calculateShipping);
 
 // Rota para verificar o token atual (opcional, para debugging)
 router.get("/token", async (req: Request, res: Response) => {
@@ -117,6 +118,7 @@ router.get("/token", async (req: Request, res: Response) => {
     const token = await getAccessToken();
     res.json({ token });
   } catch (error) {
+    console.error("Erro ao obter o token de acesso:", error);
     res.status(500).send("Erro ao obter o token de acesso");
   }
 });
