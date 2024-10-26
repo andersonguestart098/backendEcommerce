@@ -15,13 +15,15 @@ let tokenExpiration: number | null = null;
 // Função para verificar se o token está próximo de expirar
 const isTokenExpired = (): boolean => {
   const bufferTime = 5 * 60 * 1000; // Considera o token expirado se faltar menos de 5 minutos para expirar
-  return !tokenExpiration || Date.now() + bufferTime >= tokenExpiration;
+  const isExpired = !tokenExpiration || Date.now() + bufferTime >= tokenExpiration;
+  console.log(`Token está expirado? ${isExpired}`);
+  return isExpired;
 };
 
 // Função para renovar o token de acesso
 const refreshToken = async (): Promise<void> => {
+  console.log("Iniciando a renovação do token de acesso...");
   try {
-    console.log("Renovando token de acesso...");
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
       new URLSearchParams({
@@ -38,7 +40,7 @@ const refreshToken = async (): Promise<void> => {
     if (response.status === 200 && response.data.access_token) {
       melhorEnvioToken = response.data.access_token;
       tokenExpiration = Date.now() + response.data.expires_in * 1000;
-      console.log("Novo token obtido com sucesso.");
+      console.log("Novo token obtido com sucesso:", melhorEnvioToken);
     } else {
       console.error("Falha ao obter o token de acesso. Status:", response.status);
       throw new Error("Falha ao obter o token de acesso.");
@@ -58,8 +60,12 @@ const refreshToken = async (): Promise<void> => {
 
 // Função para obter o token de acesso
 const getAccessToken = async (): Promise<string> => {
+  console.log("Obtendo token de acesso...");
   if (!melhorEnvioToken || isTokenExpired()) {
+    console.log("Token não encontrado ou expirado, renovando token...");
     await refreshToken();
+  } else {
+    console.log("Token de acesso ainda válido.");
   }
   return melhorEnvioToken;
 };
@@ -67,6 +73,7 @@ const getAccessToken = async (): Promise<string> => {
 // Middleware para fornecer o token de acesso do Melhor Envio
 const obterMelhorEnvioToken = async (req: Request, res: Response): Promise<void> => {
   try {
+    console.log("Rota /token chamada para fornecer o token de acesso.");
     const token = await getAccessToken();
     res.json({ token });
   } catch (error) {
@@ -75,11 +82,15 @@ const obterMelhorEnvioToken = async (req: Request, res: Response): Promise<void>
   }
 };
 
+// Função para calcular o frete
 const calculateShipping = async (req: any, res: any) => {
   const { cepOrigem, cepDestino, produtos } = req.body;
+  console.log("Iniciando cálculo de frete...");
+  console.log("Dados recebidos:", { cepOrigem, cepDestino, produtos });
 
   try {
-    const token = await getAccessToken(); // Função para obter e renovar o token conforme necessário
+    const token = await getAccessToken();
+    console.log("Token de acesso obtido:", token);
 
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/quote`,
@@ -96,14 +107,20 @@ const calculateShipping = async (req: any, res: any) => {
       }
     );
     
-
+    console.log("Resposta da API de cálculo de frete:", response.data);
     res.json(response.data);
   } catch (error: any) {
-    console.error("Erro ao calcular frete:", error.response?.data || error.message);
+    if (error.response) {
+      console.error("Erro ao calcular frete - resposta da API:", error.response.data);
+      console.error("Status code:", error.response.status);
+    } else if (error.request) {
+      console.error("Erro ao calcular frete - nenhuma resposta recebida da API:", error.request);
+    } else {
+      console.error("Erro ao calcular frete - configuração da requisição:", error.message);
+    }
     res.status(500).send("Erro ao calcular frete");
   }
 };
-
 
 // Definição das rotas
 router.get("/calculate", calculateShipping);
