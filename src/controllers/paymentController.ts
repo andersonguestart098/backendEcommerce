@@ -2,10 +2,13 @@
 import { Request, Response } from "express";
 import mercadopago from "mercadopago";
 
-// Configure o Mercado Pago com o access token
+// Configura o Mercado Pago com o access token
 mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN || "");
 
 export const createPayment = async (req: Request, res: Response) => {
+    console.log("Iniciando criação de pagamento..."); // Log inicial
+    console.log("Dados recebidos:", req.body); // Log dos dados recebidos na requisição
+
     const payment_data = {
         items: [
           {
@@ -29,13 +32,14 @@ export const createPayment = async (req: Request, res: Response) => {
         auto_return: "approved" as const,
         external_reference: "ID_DO_PEDIDO_AQUI",
       };
-      
+
   try {
+    console.log("Enviando dados para Mercado Pago..."); // Log antes da chamada ao Mercado Pago
     const response = await mercadopago.preferences.create(payment_data);
-    console.log("Preferência de pagamento criada com sucesso:", response.body);
+    console.log("Preferência de pagamento criada com sucesso:", response.body); // Log em caso de sucesso
     res.status(200).json({ init_point: response.body.init_point }); // Link para o Checkout Pro
   } catch (error) {
-    console.error("Erro ao criar pagamento:", error);
+    console.error("Erro ao criar pagamento:", error); // Log detalhado do erro
     res.status(500).json({ message: "Erro ao criar pagamento", error });
   }
 };
