@@ -85,8 +85,9 @@ const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, functi
     }
     try {
         const melhorEnvioToken = yield getAccessToken();
-        const response = yield axios_1.default.post(`${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`, // Certifique-se de que o endpoint é correto
-        { cepDestino, produtos }, {
+        const query = new URLSearchParams({ cepDestino, produtos: JSON.stringify(produtos) }).toString();
+        const response = yield axios_1.default.post(`${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate?${query}`, // Alteração para GET
+        {
             headers: {
                 Authorization: `Bearer ${melhorEnvioToken}`,
                 "Content-Type": "application/json",
