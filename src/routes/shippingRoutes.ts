@@ -56,37 +56,35 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
-// Função para extrair produtos de cada pacote
-const extractProductsFromPackages = (packages: any[]): any[] => {
-  return packages.flatMap((pkg) => pkg.products || []);
+// Função para extrair pacotes do corpo principal do array de produtos
+const extractPackagesFromBody = (body: any[]): any[] => {
+  return body.flatMap(item => item.packages || []);
 };
 
 const calculateShipping = async (req: Request, res: Response, next: NextFunction) => {
-  const { cepOrigem, cepDestino, packages } = req.body;
+  const { cepOrigem, cepDestino } = req.body;
+  const body = req.body;
 
   try {
-    if (!packages || !Array.isArray(packages) || packages.length === 0) {
-      return res.status(400).json({ error: "Lista de pacotes inválida ou vazia." });
-    }
+    // Extraia os pacotes do corpo principal
+    const packages = extractPackagesFromBody(body);
 
-    // Extraia os produtos de cada pacote
-    const products = extractProductsFromPackages(packages);
-    if (products.length === 0) {
-      return res.status(400).json({ error: "Lista de produtos inválida ou vazia." });
+    if (!packages || packages.length === 0) {
+      return res.status(400).json({ error: "Lista de pacotes inválida ou vazia." });
     }
 
     const token = await getAccessToken();
     console.log("Token de acesso obtido:", token);
 
-    const product = products[0]; // Pega o primeiro produto para o cálculo de frete
+    const packageData = packages[0]; // Pega o primeiro pacote para o cálculo de frete
     const requestBody = {
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
       package: {
-        height: packages[0].dimensions.height || 1,
-        width: packages[0].dimensions.width || 1,
-        length: packages[0].dimensions.length || 1,
-        weight: packages[0].weight || 0.1,
+        height: packageData.dimensions.height || 1,
+        width: packageData.dimensions.width || 1,
+        length: packageData.dimensions.length || 1,
+        weight: packageData.weight || 0.1,
       },
     };
     console.log("Corpo da requisição para cálculo de frete:", requestBody);
