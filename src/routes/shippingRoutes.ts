@@ -75,24 +75,35 @@ const obterMelhorEnvioToken = async (req: Request, res: Response) => {
 };
 
 const calculateShipping = async (req: Request, res: Response) => {
-  const { cepDestino, produtos } = req.body;
+  const { cepOrigem, cepDestino, produtos } = req.body;
 
-  if (!cepDestino || !produtos || produtos.length === 0) {
-    res.status(400).send("CEP de destino e produtos são necessários.");
+  if (!cepOrigem || !cepDestino || !produtos || produtos.length === 0) {
+    res.status(400).send("CEP de origem, destino e produtos são necessários.");
     return;
   }
 
   try {
     const melhorEnvioToken = await getAccessToken();
-    const query = new URLSearchParams({ cepDestino, produtos: JSON.stringify(produtos) }).toString();
 
-    const response = await axios.get(
-      `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate?${query}`, // Alteração para GET
+    const response = await axios.post(
+      `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`,
+      {
+        from: { postal_code: cepOrigem },
+        to: { postal_code: cepDestino },
+        products: produtos.map((item: any) => ({
+          id: item.id,
+          width: item.width,
+          height: item.height,
+          length: item.length,
+          weight: item.weight,
+          insurance_value: item.price * item.quantity,
+          quantity: item.quantity,
+        })),
+      },
       {
         headers: {
           Authorization: `Bearer ${melhorEnvioToken}`,
           "Content-Type": "application/json",
-          "User-Agent": "MyApp (contato@exemplo.com)",
         },
       }
     );
@@ -103,6 +114,7 @@ const calculateShipping = async (req: Request, res: Response) => {
     res.status(500).send("Erro ao calcular frete");
   }
 };
+
 
 
 // Adicionando funções ao router
