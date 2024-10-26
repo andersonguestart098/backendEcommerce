@@ -69,7 +69,7 @@ const calculateShipping = async (req: Request, res: Response) => {
     console.log("Token obtido para requisição:", token);
 
     const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
+      `https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate`, // Use o sandbox para teste
       {
         from: { postal_code: req.body.cepOrigem },
         to: { postal_code: req.body.cepDestino },
@@ -91,10 +91,16 @@ const calculateShipping = async (req: Request, res: Response) => {
 
     res.json(response.data);
   } catch (error: any) {
-    console.error("Erro ao calcular frete:", error.message);
-    res.status(500).json({ error: "Erro ao calcular frete." });
+    if (error.response) {
+      console.error("Erro na resposta da API de cálculo de frete:", error.response.data);
+      res.status(error.response.status).json(error.response.data);
+    } else {
+      console.error("Erro ao calcular frete:", error.message);
+      res.status(500).json({ error: "Erro ao calcular frete." });
+    }
   }
 };
+
 
 
 router.post("/calculate", calculateShipping as express.RequestHandler);
