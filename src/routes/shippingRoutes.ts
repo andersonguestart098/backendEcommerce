@@ -10,18 +10,25 @@ console.log("Arquivo shippingRoutes.ts foi carregado.");
 let melhorEnvioToken: string = ""; 
 let tokenExpiration: number | null = null;
 
+// Função para verificar se o token está expirado
 const isTokenExpired = (): boolean => {
-  const bufferTime = 5 * 60 * 1000;
+  const bufferTime = 5 * 60 * 1000; // 5 minutos de margem
   const isExpired = !tokenExpiration || Date.now() + bufferTime >= tokenExpiration;
   console.log(`Token está expirado? ${isExpired}`);
   return isExpired;
 };
 
+// Função para renovar o token de acesso
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Renovando o token...");
+
+    const apiUrl = process.env.MELHOR_ENVIO_ENV === "production"
+      ? "https://api.melhorenvio.com.br/oauth/token"
+      : "https://sandbox.melhorenvio.com.br/oauth/token";
+
     const response = await axios.post(
-      `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
+      apiUrl,
       new URLSearchParams({
         client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
         client_secret: process.env.MELHOR_ENVIO_SECRET || "",
@@ -41,10 +48,11 @@ const refreshToken = async (): Promise<void> => {
     }
   } catch (error: any) {
     console.error("Erro ao renovar o token:", error.message);
-    throw new Error("Erro ao renovar o token.");
+    throw new Error("Erro ao renovar o token. Verifique as credenciais e o ambiente.");
   }
 };
 
+// Função principal para obter o token de acesso, com renovação automática
 const getAccessToken = async (): Promise<string> => {
   console.log("Obtendo token de acesso...");
   if (!melhorEnvioToken || isTokenExpired()) {
@@ -56,13 +64,10 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
+// Função para extrair os pacotes do corpo da requisição
 const extractPackagesFromBody = (body: any): any[] => {
-  if (Array.isArray(body.packages)) {
-    return body.packages;
-  }
-  return [];
+  return Array.isArray(body.packages) ? body.packages : [];
 };
-
 const calculateShipping = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
