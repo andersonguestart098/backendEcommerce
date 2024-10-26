@@ -19,7 +19,7 @@ const isTokenExpired = (): boolean => {
 
 const refreshToken = async (): Promise<void> => {
   try {
-    console.log("Iniciando a renovação do token de acesso...");
+    console.log("Renovando o token...");
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
       new URLSearchParams({
@@ -35,13 +35,13 @@ const refreshToken = async (): Promise<void> => {
     if (response.status === 200 && response.data.access_token) {
       melhorEnvioToken = response.data.access_token;
       tokenExpiration = Date.now() + response.data.expires_in * 1000;
-      console.log("Novo token obtido com sucesso:", melhorEnvioToken);
+      console.log("Token atualizado:", melhorEnvioToken);
     } else {
-      throw new Error("Falha ao obter o token de acesso.");
+      throw new Error("Falha ao obter token de acesso.");
     }
   } catch (error: any) {
-    console.error("Erro ao renovar token:", error.message);
-    throw new Error("Erro ao renovar o token de acesso.");
+    console.error("Erro ao renovar o token:", error.message);
+    throw new Error("Erro ao renovar o token.");
   }
 };
 
@@ -63,60 +63,36 @@ const extractPackagesFromBody = (body: any): any[] => {
   return [];
 };
 
-const calculateShipping = async (req: Request, res: Response, next: NextFunction) => {
-  const { cepOrigem, cepDestino, packages } = req.body;
-
+const calculateShipping = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
-    console.log("Token de acesso obtido:", token);
-
-    const extractedPackages = extractPackagesFromBody(req.body);
-
-    if (!extractedPackages || extractedPackages.length === 0) {
-      return res.status(400).json({ error: "Lista de pacotes inválida ou vazia." });
-    }
-
-    const packageData = extractedPackages[0];
-    const dimensions = packageData?.dimensions || {};
-    const requestBody = {
-      from: { postal_code: cepOrigem },
-      to: { postal_code: cepDestino },
-      package: {
-        height: dimensions.height || 1,
-        width: dimensions.width || 1,
-        length: dimensions.length || 1,
-        weight: packageData.weight || 0.1,
-      },
-    };
-    console.log("Corpo da requisição para cálculo de frete:", requestBody);
-
-    // Adicione um log para verificar os cabeçalhos enviados
-    const headers = {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-      "User-Agent": "Aplicação anderson.guestart98@gmail.com"
-    };
-    console.log("Cabeçalhos da requisição:", headers);
+    console.log("Token obtido para requisição:", token);
 
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
-      requestBody,
-      { headers }
+      {
+        from: { postal_code: req.body.cepOrigem },
+        to: { postal_code: req.body.cepDestino },
+        package: {
+          height: req.body.height || 1,
+          width: req.body.width || 1,
+          length: req.body.length || 1,
+          weight: req.body.weight || 0.1,
+        },
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "User-Agent": "Aplicação anderson.guestart98@gmail.com",
+        },
+      }
     );
-    
-    console.log("Resposta da API de cálculo de frete:", response.data);
-    return res.json(response.data);
+
+    res.json(response.data);
   } catch (error: any) {
-    if (error.response) {
-      console.error("Erro na resposta da API de cálculo de frete:", error.response.data);
-      console.error("Status code:", error.response.status);
-    } else if (error.request) {
-      console.error("Erro na requisição para a API de cálculo de frete:", error.request);
-    } else {
-      console.error("Erro ao configurar a requisição de cálculo de frete:", error.message);
-    }
-    res.status(500).send("Erro ao calcular frete");
-    next(error);
+    console.error("Erro ao calcular frete:", error.message);
+    res.status(500).json({ error: "Erro ao calcular frete." });
   }
 };
 
