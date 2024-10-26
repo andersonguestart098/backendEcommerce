@@ -13,6 +13,32 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
+// Função para listar todos os pedidos (apenas para administradores)
+export const getAllOrders = async (req: Request, res: Response): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
+  const userRole = authReq.user.tipoUsuario;
+
+  if (userRole !== "admin") {
+    res.status(403).json({ message: "Acesso negado: apenas administradores podem ver todos os pedidos" });
+    return;
+  }
+
+  try {
+    const orders = await prisma.order.findMany({
+      include: {
+        products: {
+          include: {
+            product: true,
+          },
+        },
+      },
+    });
+    res.json(orders);
+  } catch (err) {
+    console.error("Erro ao buscar pedidos:", err);
+    res.status(500).json({ message: "Erro ao buscar pedidos" });
+  }
+};
 
 // Fetch a specific order by ID
 export const getOrderById = async (req: Request, res: Response): Promise<void> => {

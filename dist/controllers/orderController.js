@@ -8,49 +8,15 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updateOrderStatus = exports.createOrder = exports.getOrderById = exports.getAllOrders = void 0;
+exports.updateOrderStatus = exports.createOrder = exports.getOrderById = void 0;
 const client_1 = require("@prisma/client");
 const __1 = require("..");
+const mercadopago_1 = __importDefault(require("mercadopago"));
 const prisma = new client_1.PrismaClient();
-const getAllOrders = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const authReq = req;
-    const userId = authReq.user.id;
-    const userRole = authReq.user.tipoUsuario;
-    try {
-        let orders;
-        if (req.path === '/me' && userRole !== 'admin') {
-            orders = yield prisma.order.findMany({
-                where: { userId },
-                include: {
-                    products: {
-                        include: {
-                            product: true,
-                        },
-                    },
-                },
-            });
-        }
-        else {
-            orders = yield prisma.order.findMany({
-                include: {
-                    products: {
-                        include: {
-                            product: true,
-                        },
-                    },
-                },
-            });
-        }
-        const refinedOrders = orders.map(order => (Object.assign(Object.assign({}, order), { products: order.products.filter(orderProduct => orderProduct.product !== null) })));
-        res.json(refinedOrders);
-    }
-    catch (err) {
-        console.error("Database query error:", err); // Added logging for better troubleshooting
-        res.status(500).json({ message: "Error fetching orders" });
-    }
-});
-exports.getAllOrders = getAllOrders;
 // Fetch a specific order by ID
 const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const { id } = req.params;
@@ -81,16 +47,18 @@ const getOrderById = (req, res) => __awaiter(void 0, void 0, void 0, function* (
     }
 });
 exports.getOrderById = getOrderById;
-// Create a new order
+// Função para criar pedido e configurar a preferência de pagamento
 const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     const authReq = req;
-    const { products, totalPrice } = req.body;
+    const { products, totalPrice, shippingCost } = req.body;
     const userId = authReq.user.id;
     try {
+        // Criação do pedido no banco de dados
         const order = yield prisma.order.create({
             data: {
                 userId,
                 totalPrice,
+                shippingCost,
                 products: {
                     create: products.map((product) => ({
                         productId: product.id,
@@ -99,17 +67,35 @@ const createOrder = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
                 },
             },
             include: {
-                products: {
-                    include: {
-                        product: true,
-                    },
-                },
+                products: { include: { product: true } },
             },
         });
-        res.status(201).json(order);
+        // Configuração da preferência de pagamento para o Mercado Pago
+        const preference = {
+            items: products.map((product) => ({
+                title: product.name,
+                quantity: product.quantity,
+                unit_price: product.price,
+            })),
+            back_urls: {
+                success: "https://seu-front-end.com/order-confirmation",
+                failure: "https://seu-front-end.com/order-failure",
+                pending: "https://seu-front-end.com/order-pending",
+            },
+            auto_return: "approved", // Certificando o valor como compatível
+            statement_descriptor: "Seu E-commerce",
+            external_reference: order.id.toString(),
+        };
+        // Criação da preferência de pagamento no Mercado Pago
+        const mercadoPagoResponse = yield mercadopago_1.default.preferences.create(preference);
+        res.status(201).json({
+            order,
+            init_point: mercadoPagoResponse.body.init_point, // URL de checkout do Mercado Pago
+        });
     }
     catch (err) {
-        res.status(500).json({ message: "Error creating order" });
+        console.error("Erro ao criar pedido ou preferência de pagamento:", err);
+        res.status(500).json({ message: "Erro ao criar pedido ou preferência de pagamento" });
     }
 });
 exports.createOrder = createOrder;

@@ -15,90 +15,109 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const axios_1 = __importDefault(require("axios"));
 const dotenv_1 = __importDefault(require("dotenv"));
+const melhorEnvioMiddleware_1 = require("../middleware/melhorEnvioMiddleware");
 dotenv_1.default.config();
 const router = express_1.default.Router();
-// Variáveis para armazenar o token e a validade
-let melhorEnvioToken = ""; // Inicializado como string vazia
+console.log("Arquivo shippingRoutes.ts foi carregado.");
+let melhorEnvioToken = "";
 let tokenExpiration = null;
-// Função para obter o token de acesso do Melhor Envio
-// Function to get the Melhor Envio access token
-const getAccessToken = () => __awaiter(void 0, void 0, void 0, function* () {
-    // Reuse the token if it exists and is still valid
-    if (melhorEnvioToken && tokenExpiration && tokenExpiration > Date.now()) {
-        return melhorEnvioToken;
-    }
+// Função para verificar se o token está expirado
+const isTokenExpired = () => {
+    const bufferTime = 5 * 60 * 1000; // 5 minutos de margem
+    const isExpired = !tokenExpiration || Date.now() + bufferTime >= tokenExpiration;
+    console.log(`Token está expirado? ${isExpired}`);
+    return isExpired;
+};
+// Função para obter a URL da API com base no ambiente
+const getApiUrl = () => {
+    return process.env.MELHOR_ENVIO_ENV === "production"
+        ? "https://api.melhorenvio.com.br"
+        : "https://sandbox.melhorenvio.com.br";
+};
+// Função para renovar o token de acesso
+const refreshToken = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        console.log("Iniciando a obtenção do token de acesso...");
-        const response = yield (0, axios_1.default)({
-            method: "POST",
-            url: `${process.env.MELHOR_ENVIO_API_URL}/oauth/token`,
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-            data: new URLSearchParams({
-                client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
-                client_secret: process.env.MELHOR_ENVIO_SECRET || "",
-                grant_type: "client_credentials",
-            }).toString(),
-            timeout: 10000,
+        console.log("Renovando o token...");
+        const apiUrl = getApiUrl();
+        const response = yield axios_1.default.post(`${apiUrl}/oauth/token`, new URLSearchParams({
+            client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
+            client_secret: process.env.MELHOR_ENVIO_SECRET || "",
+            grant_type: "client_credentials",
+        }).toString(), {
+            headers: { "Content-Type": "application/x-www-form-urlencoded" },
         });
-        if (response.status !== 200 || !response.data.access_token) {
-            throw new Error("Falha ao obter o token de acesso. Verifique as credenciais.");
-        }
-        // Save the token and set the expiration time
-        melhorEnvioToken = response.data.access_token;
-        tokenExpiration = Date.now() + response.data.expires_in * 1000; // `expires_in` is in seconds
-        console.log("Access Token obtido com sucesso:", melhorEnvioToken);
-        return melhorEnvioToken;
-    }
-    catch (error) {
-        // Improved error logging for better debugging
-        if (error.response) {
-            console.error("Erro na resposta da API:", error.response.data || error.response.statusText);
-        }
-        else if (error.request) {
-            console.error("Nenhuma resposta foi recebida da API:", error.request);
+        if (response.status === 200 && response.data.access_token) {
+            melhorEnvioToken = response.data.access_token;
+            tokenExpiration = Date.now() + response.data.expires_in * 1000;
+            console.log("Token atualizado:", melhorEnvioToken);
         }
         else {
-            console.error("Erro ao configurar a requisição:", error.message);
+            throw new Error("Falha ao obter token de acesso.");
         }
-        throw new Error("Falha ao autenticar na API do Melhor Envio. Tente novamente.");
-    }
-});
-// Middleware to provide the Melhor Envio access token
-const obterMelhorEnvioToken = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const token = yield getAccessToken();
-        res.json({ token });
     }
     catch (error) {
-        console.error("Erro ao fornecer o token de acesso:", error);
-        res.status(500).send("Erro ao obter o token de acesso");
+        console.error("Erro ao renovar o token:", error.message);
+        throw new Error("Erro ao renovar o token. Verifique as credenciais e o ambiente.");
     }
 });
-const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
-    const { cepOrigem, cepDestino, produtos } = req.body;
-    if (!cepOrigem || !cepDestino || !produtos || produtos.length === 0) {
-        res.status(400).send("CEP de origem, destino e produtos são necessários.");
-        return;
+// Função para obter o token de acesso, renovando-o se necessário
+const getAccessToken = () => __awaiter(void 0, void 0, void 0, function* () {
+    console.log("Obtendo token de acesso...");
+    if (!melhorEnvioToken || isTokenExpired()) {
+        console.log("Token não encontrado ou expirado, renovando token...");
+        yield refreshToken();
     }
+    else {
+        console.log("Token de acesso ainda válido.");
+    }
+    return melhorEnvioToken;
+});
+// Função para calcular o frete
+const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const melhorEnvioToken = yield getAccessToken(); // Ensure this returns a valid token
-        const response = yield axios_1.default.post(`${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`, // Ensure this endpoint exists and accepts POST
-        { cepOrigem, cepDestino, produtos }, {
+        const token = yield getAccessToken();
+        console.log("Token obtido para requisição:", token);
+        const apiUrl = getApiUrl();
+        const response = yield axios_1.default.post(`${apiUrl}/api/v2/me/shipment/calculate`, {
+            from: { postal_code: req.body.cepOrigem },
+            to: { postal_code: req.body.cepDestino },
+            package: {
+                height: req.body.height || 1,
+                width: req.body.width || 1,
+                length: req.body.length || 1,
+                weight: req.body.weight || 0.1,
+            },
+        }, {
             headers: {
-                Authorization: `Bearer ${melhorEnvioToken}`,
+                Authorization: `Bearer ${token}`,
                 "Content-Type": "application/json",
+                "User-Agent": "Aplicação anderson.guestart98@gmail.com",
             },
         });
         res.json(response.data);
     }
     catch (error) {
-        console.error("Erro ao calcular frete:", ((_a = error.response) === null || _a === void 0 ? void 0 : _a.data) || error.message);
-        res.status(500).send("Erro ao calcular frete");
+        if (error.response) {
+            console.error("Erro na resposta da API de cálculo de frete:", error.response.data);
+            res.status(error.response.status).json(error.response.data);
+        }
+        else {
+            console.error("Erro ao calcular frete:", error.message);
+            res.status(500).json({ error: "Erro ao calcular frete." });
+        }
     }
 });
-router.post("/calculate", calculateShipping);
-router.get("/token", obterMelhorEnvioToken);
+// Rota para cálculo de frete com autenticação
+router.post("/calculate", melhorEnvioMiddleware_1.autenticarComMelhorEnvio, calculateShipping);
+// Rota para verificar o token atual (opcional, para debugging)
+router.get("/token", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    try {
+        const token = yield getAccessToken();
+        res.json({ token });
+    }
+    catch (error) {
+        console.error("Erro ao obter o token de acesso:", error);
+        res.status(500).send("Erro ao obter o token de acesso");
+    }
+}));
 exports.default = router;
