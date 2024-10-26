@@ -7,7 +7,7 @@ exports.emitOrderStatusUpdate = void 0;
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
-const cors_1 = __importDefault(require("cors"));
+const corsMiddleware_1 = __importDefault(require("./middleware/corsMiddleware")); // Importando o middleware CORS
 const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const bannerRoutes_1 = __importDefault(require("./routes/bannerRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
@@ -29,19 +29,11 @@ const io = new socket_io_1.Server(server, {
         ],
         methods: ["GET", "POST", "PUT", "DELETE"],
         allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
-        credentials: true, // Permitir credenciais se necessário
+        credentials: true,
     },
 });
-app.use((0, cors_1.default)({
-    origin: [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
-        "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
-}));
+// Use o middleware CORS importado
+app.use(corsMiddleware_1.default);
 app.use(express_1.default.json());
 app.get("/", (req, res) => {
     res.send("Servidor funcionando.");
