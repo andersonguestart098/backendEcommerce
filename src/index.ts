@@ -1,15 +1,15 @@
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
-import cors from "cors"; // Importando o CORS diretamente
+import cors from "cors";
+import dotenv from "dotenv";
 import productRoutes from "./routes/productRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
 import userRoutes from "./routes/userRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import authRoutes from "./routes/authRoutes";
-import authMiddleware from "./middleware/authMiddleware";
-import dotenv from "dotenv";
 import shippingRoutes from "./routes/shippingRoutes";
+import authMiddleware from "./middleware/authMiddleware";
 
 dotenv.config();
 
@@ -28,15 +28,17 @@ const corsOptions = {
   allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
   credentials: true,
 };
-app.use(cors(corsOptions));
 
+// Aplicando o CORS e parsing de JSON
+app.use(cors(corsOptions));
 app.use(express.json());
 
+// Rota base para teste do servidor
 app.get("/", (req, res) => {
   res.send("Servidor funcionando.");
 });
 
-// Rotas
+// Importando e usando as rotas
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
 app.use("/users", userRoutes);
@@ -44,16 +46,12 @@ app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 
-app.get("/", (req, res) => {
-  res.send(
-    "Servidor rodando. Acesse as rotas configuradas para mais funcionalidades."
-  );
-});
-
+// Rota privada de exemplo usando authMiddleware
 app.get("/private-route", authMiddleware, (req, res) => {
   res.send("Acesso autorizado");
 });
 
+// Rota para verificar variáveis de ambiente
 app.get("/test-env", (req, res) => {
   res.json({
     clientId: process.env.MELHOR_ENVIO_CLIENT_ID,
@@ -62,9 +60,9 @@ app.get("/test-env", (req, res) => {
   });
 });
 
-// WebSockets
+// Configuração do WebSocket com CORS
 const io = new Server(server, {
-  cors: corsOptions, // Aplicando as mesmas opções de CORS ao Socket.IO
+  cors: corsOptions,
 });
 
 io.on("connection", (socket) => {
@@ -80,7 +78,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// Emitir evento quando o status do pedido mudar
+// Função para emitir evento quando o status do pedido muda
 const emitOrderStatusUpdate = (
   orderId: string,
   newStatus: string,
@@ -89,7 +87,7 @@ const emitOrderStatusUpdate = (
   io.to(userId).emit("orderStatusUpdated", { orderId, status: newStatus });
 };
 
-// Porta do servidor
+// Iniciando o servidor
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT}`);

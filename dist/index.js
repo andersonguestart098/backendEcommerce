@@ -7,7 +7,7 @@ exports.emitOrderStatusUpdate = void 0;
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
-const cors_1 = __importDefault(require("cors")); // Importando o CORS diretamente
+const cors_1 = __importDefault(require("cors")); // Importing CORS directly
 const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const bannerRoutes_1 = __importDefault(require("./routes/bannerRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
@@ -27,28 +27,29 @@ const corsOptions = {
         "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
         "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"], // Include POST explicitly
     allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
     credentials: true,
 };
+// Applying CORS and JSON body parsing
 app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
+// Base route for testing server
 app.get("/", (req, res) => {
     res.send("Servidor funcionando.");
 });
-// Rotas
+// Importing routes
 app.use("/products", productRoutes_1.default);
 app.use("/banners", bannerRoutes_1.default);
 app.use("/users", userRoutes_1.default);
 app.use("/auth", authRoutes_1.default);
 app.use("/orders", orderRoutes_1.default);
-app.use("/shipping", shippingRoutes_1.default);
-app.get("/", (req, res) => {
-    res.send("Servidor rodando. Acesse as rotas configuradas para mais funcionalidades.");
-});
+app.use("/shipping", shippingRoutes_1.default); // Ensure POST is accepted in `shippingRoutes`
+// Private route using authMiddleware
 app.get("/private-route", authMiddleware_1.default, (req, res) => {
     res.send("Acesso autorizado");
 });
+// Route to test environment variables
 app.get("/test-env", (req, res) => {
     res.json({
         clientId: process.env.MELHOR_ENVIO_CLIENT_ID,
@@ -56,9 +57,9 @@ app.get("/test-env", (req, res) => {
         apiUrl: process.env.MELHOR_ENVIO_API_URL,
     });
 });
-// WebSockets
+// WebSockets configuration
 const io = new socket_io_1.Server(server, {
-    cors: corsOptions, // Aplicando as mesmas opções de CORS ao Socket.IO
+    cors: corsOptions, // Applying CORS options to Socket.IO
 });
 io.on("connection", (socket) => {
     console.log("Novo cliente conectado:", socket.id);
@@ -70,12 +71,12 @@ io.on("connection", (socket) => {
         console.log("Cliente desconectado:", socket.id);
     });
 });
-// Emitir evento quando o status do pedido mudar
+// Emit event when the order status changes
 const emitOrderStatusUpdate = (orderId, newStatus, userId) => {
     io.to(userId).emit("orderStatusUpdated", { orderId, status: newStatus });
 };
 exports.emitOrderStatusUpdate = emitOrderStatusUpdate;
-// Porta do servidor
+// Server listening on defined PORT
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);

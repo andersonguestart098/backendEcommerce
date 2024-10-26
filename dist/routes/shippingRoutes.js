@@ -78,20 +78,18 @@ const obterMelhorEnvioToken = (req, res) => __awaiter(void 0, void 0, void 0, fu
 });
 const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a;
-    const { cepDestino, produtos } = req.body;
-    if (!cepDestino || !produtos || produtos.length === 0) {
-        res.status(400).send("CEP de destino e produtos são necessários.");
+    const { cepOrigem, cepDestino, produtos } = req.body;
+    if (!cepOrigem || !cepDestino || !produtos || produtos.length === 0) {
+        res.status(400).send("CEP de origem, destino e produtos são necessários.");
         return;
     }
     try {
-        const melhorEnvioToken = yield getAccessToken();
-        const query = new URLSearchParams({ cepDestino, produtos: JSON.stringify(produtos) }).toString();
-        const response = yield axios_1.default.post(`${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate?${query}`, // Alteração para GET
-        {
+        const melhorEnvioToken = yield getAccessToken(); // Ensure this returns a valid token
+        const response = yield axios_1.default.post(`${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`, // Ensure this endpoint exists and accepts POST
+        { cepOrigem, cepDestino, produtos }, {
             headers: {
                 Authorization: `Bearer ${melhorEnvioToken}`,
                 "Content-Type": "application/json",
-                "User-Agent": "MyApp (contato@exemplo.com)",
             },
         });
         res.json(response.data);
@@ -101,7 +99,6 @@ const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, functi
         res.status(500).send("Erro ao calcular frete");
     }
 });
-// Adicionando funções ao router
 router.post("/calculate", calculateShipping);
 router.get("/token", obterMelhorEnvioToken);
 exports.default = router;
