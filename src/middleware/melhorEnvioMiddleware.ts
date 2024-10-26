@@ -1,9 +1,4 @@
-import express, {
-  Request,
-  Response,
-  NextFunction,
-  RequestHandler,
-} from "express";
+import express, { Request, Response, NextFunction, RequestHandler } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 
@@ -35,36 +30,43 @@ const getAccessToken = async (): Promise<string> => {
     });
 
     if (response.status !== 200 || !response.data.access_token) {
-      throw new Error(
-        "Falha ao obter o token de acesso. Verifique as credenciais."
-      );
+      throw new Error("Falha ao obter o token de acesso. Verifique as credenciais.");
     }
 
+    // Salvar o token e configurar o tempo de expiração
     melhorEnvioToken = response.data.access_token;
-    tokenExpiration = Date.now() + response.data.expires_in * 1000; // Assumindo que `expires_in` é dado em segundos
+    tokenExpiration = Date.now() + response.data.expires_in * 1000; // `expires_in` é dado em segundos
 
     console.log("Access Token obtido com sucesso:", melhorEnvioToken);
     return melhorEnvioToken;
   } catch (error: any) {
-    console.error("Erro ao obter token de acesso:", error);
-    throw new Error(
-      "Falha ao autenticar na API do Melhor Envio. Tente novamente."
-    );
+    console.error("Erro ao obter token de acesso:", error.response?.data || error.message);
+    throw new Error("Falha ao autenticar na API do Melhor Envio. Tente novamente.");
   }
 };
 
-// Middleware para fornecer o token de acesso
-const obterMelhorEnvioToken: RequestHandler = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
+// Middleware para obter e anexar o token de acesso ao request
+const autenticarComMelhorEnvio: RequestHandler = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const token = await getAccessToken();
+    // Anexa o token ao objeto `req` para que outras rotas possam acessá-lo
+    req.headers.authorization = `Bearer ${token}`;
+    next();
+  } catch (error) {
+    console.error("Erro ao autenticar com Melhor Envio:", error);
+    res.status(500).send("Erro ao autenticar com Melhor Envio.");
+  }
+};
+
+// Middleware para fornecer o token diretamente (se necessário)
+const fornecerMelhorEnvioToken: RequestHandler = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
     res.json({ token });
   } catch (error) {
+    console.error("Erro ao fornecer o token de acesso:", error);
     res.status(500).send("Erro ao obter o token de acesso");
   }
 };
 
-export { getAccessToken, obterMelhorEnvioToken };
+export { getAccessToken, autenticarComMelhorEnvio, fornecerMelhorEnvioToken };
