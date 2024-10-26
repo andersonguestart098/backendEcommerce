@@ -56,31 +56,28 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
-// Função para extrair pacotes do corpo principal do array de produtos
-const extractPackagesFromBody = (body: any[]): any[] => {
-  return body.flatMap(item => item.packages || []);
+// Função para extrair pacotes do corpo principal, assumindo que body.packages é um array de pacotes
+const extractPackagesFromBody = (body: any): any[] => {
+  if (Array.isArray(body.packages)) {
+    return body.packages;
+  }
+  return [];
 };
 
 const calculateShipping = async (req: Request, res: Response, next: NextFunction) => {
-  const { cepOrigem, cepDestino } = req.body;
-  const body = req.body;
+  const { cepOrigem, cepDestino, packages } = req.body;
 
   try {
     const token = await getAccessToken();
-    console.log("Token de acesso obtido:", token);  // Log do token para verificar
+    console.log("Token de acesso obtido:", token);
 
-    // Verifique se cepOrigem e cepDestino estão definidos
-    if (!cepOrigem || !cepDestino) {
-      return res.status(400).json({ error: "CEP de origem ou destino ausente." });
-    }
+    const extractedPackages = extractPackagesFromBody(req.body);
 
-    const packages = extractPackagesFromBody(body);
-
-    if (!packages || packages.length === 0) {
+    if (!extractedPackages || extractedPackages.length === 0) {
       return res.status(400).json({ error: "Lista de pacotes inválida ou vazia." });
     }
 
-    const packageData = packages[0];
+    const packageData = extractedPackages[0]; // Pega o primeiro pacote para o cálculo de frete
     const requestBody = {
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
