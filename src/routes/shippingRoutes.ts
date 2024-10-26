@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 
@@ -18,16 +18,18 @@ const isTokenExpired = (): boolean => {
   return isExpired;
 };
 
+// Função para obter a URL da API com base no ambiente
 const getApiUrl = (): string => {
-  const env = process.env.MELHOR_ENVIO_ENV;
-  return env === "production"
-    ? process.env.MELHOR_ENVIO_PROD_API_URL!
-    : process.env.MELHOR_ENVIO_API_URL!;
+  return process.env.MELHOR_ENVIO_ENV === "production"
+    ? "https://api.melhorenvio.com.br"
+    : "https://sandbox.melhorenvio.com.br";
 };
 
+// Função para renovar o token de acesso
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Renovando o token...");
+
     const response = await axios.post(
       `${getApiUrl()}/oauth/token`,
       new URLSearchParams({
@@ -49,12 +51,11 @@ const refreshToken = async (): Promise<void> => {
     }
   } catch (error: any) {
     console.error("Erro ao renovar o token:", error.message);
-    throw new Error("Erro ao renovar o token.");
+    throw new Error("Erro ao renovar o token. Verifique as credenciais e o ambiente.");
   }
 };
 
-
-// Função principal para obter o token de acesso, com renovação automática
+// Função para obter o token de acesso, renovando-o se necessário
 const getAccessToken = async (): Promise<string> => {
   console.log("Obtendo token de acesso...");
   if (!melhorEnvioToken || isTokenExpired()) {
@@ -66,11 +67,7 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
-// Função para extrair os pacotes do corpo da requisição
-const extractPackagesFromBody = (body: any): any[] => {
-  return Array.isArray(body.packages) ? body.packages : [];
-};
-
+// Função para calcular o frete usando o token obtido
 const calculateShipping = async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
@@ -109,8 +106,10 @@ const calculateShipping = async (req: Request, res: Response) => {
   }
 };
 
-
+// Rota para calcular o frete
 router.post("/calculate", calculateShipping as express.RequestHandler);
+
+// Rota para obter o token manualmente (para teste)
 router.get("/token", async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
