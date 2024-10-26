@@ -134,7 +134,8 @@ const calculateShipping = async (req: Request, res: Response) => {
 
 
 // Definição das rotas
-router.get("/calculate", calculateShipping);
+router.post("/calculate", calculateShipping);
+
 router.get("/token", obterMelhorEnvioToken);
 router.get("/test", (req: Request, res: Response) => {
   res.send("Rota de teste funcionando.");
