@@ -1,4 +1,3 @@
-// controllers/paymentController.ts
 import { Request, Response } from "express";
 import mercadopago from "mercadopago";
 
@@ -9,13 +8,13 @@ export const createPayment = async (req: Request, res: Response) => {
     console.log("Iniciando criação de pagamento..."); // Log inicial
     console.log("Token de acesso:", process.env.MERCADO_PAGO_ACCESS_TOKEN); // Verifica se o token está disponível
 
-    // Dados do pagamento
+    // Dados do pagamento com tipos especificados
     const payment_data = {
         items: [
           {
             title: req.body.description || "Produto de exemplo",
             quantity: 1,
-            currency_id: "BRL" as const,
+            currency_id: "BRL" as const,  // Define a moeda como constante para compatibilidade
             unit_price: req.body.amount || 100,
           },
         ],
@@ -30,10 +29,10 @@ export const createPayment = async (req: Request, res: Response) => {
           failure: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/falha",
           pending: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/pendente",
         },
-        auto_return: "approved" as const,
+        auto_return: "approved" as const, // Define auto_return como constante
         external_reference: "ID_DO_PEDIDO_AQUI",
     };
-
+    
     console.log("Dados do pagamento:", payment_data); // Log dos dados de pagamento
 
     try {
