@@ -82,7 +82,7 @@ const calculateShipping = async (req: any, res: any) => {
     const token = await getAccessToken(); // Função para obter e renovar o token conforme necessário
 
     const response = await axios.post(
-      "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/quote",
+      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/quote`,
       {
         from: { postal_code: cepOrigem },
         to: { postal_code: cepDestino },
@@ -95,6 +95,7 @@ const calculateShipping = async (req: any, res: any) => {
         },
       }
     );
+    
 
     res.json(response.data);
   } catch (error: any) {
