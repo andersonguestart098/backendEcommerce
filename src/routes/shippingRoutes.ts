@@ -75,23 +75,22 @@ const obterMelhorEnvioToken = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// Função para calcular o frete
-const calculateShipping = async (req: Request, res: Response): Promise<void> => {
-  const { cepOrigem, cepDestino, produtos } = req.query;
-
-  if (!cepOrigem || !cepDestino || !produtos) {
-    res.status(400).send("CEP de origem, destino e produtos são necessários.");
-    return;
-  }
+const calculateShipping = async (req: any, res: any) => {
+  const { cepOrigem, cepDestino, produtos } = req.body;
 
   try {
-    const melhorEnvioToken = await getAccessToken();
-    const response = await axios.get(
-      `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`,
+    const token = await getAccessToken(); // Função para obter e renovar o token conforme necessário
+
+    const response = await axios.post(
+      "https://sandbox.melhorenvio.com.br/api/v2/me/shipment/quote",
       {
-        params: { cepOrigem, cepDestino, produtos },
+        from: { postal_code: cepOrigem },
+        to: { postal_code: cepDestino },
+        products: produtos,
+      },
+      {
         headers: {
-          Authorization: `Bearer ${melhorEnvioToken}`,
+          Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
       }
@@ -103,6 +102,7 @@ const calculateShipping = async (req: Request, res: Response): Promise<void> => 
     res.status(500).send("Erro ao calcular frete");
   }
 };
+
 
 // Definição das rotas
 router.get("/calculate", calculateShipping);
