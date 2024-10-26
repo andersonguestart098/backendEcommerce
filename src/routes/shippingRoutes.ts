@@ -77,8 +77,6 @@ const calculateShipping = async (req: Request, res: Response, next: NextFunction
     }
 
     const packageData = extractedPackages[0];
-    
-    // Verifique se `packageData` e `dimensions` estão definidos
     const dimensions = packageData?.dimensions || {};
     const requestBody = {
       from: { postal_code: cepOrigem },
@@ -92,16 +90,18 @@ const calculateShipping = async (req: Request, res: Response, next: NextFunction
     };
     console.log("Corpo da requisição para cálculo de frete:", requestBody);
 
+    // Adicione um log para verificar os cabeçalhos enviados
+    const headers = {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+      "User-Agent": "Aplicação anderson.guestart98@gmail.com"
+    };
+    console.log("Cabeçalhos da requisição:", headers);
+
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`,
       requestBody,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "User-Agent": "Aplicação anderson.guestart98@gmail.com"
-        }
-      }
+      { headers }
     );
     
     console.log("Resposta da API de cálculo de frete:", response.data);
@@ -119,6 +119,7 @@ const calculateShipping = async (req: Request, res: Response, next: NextFunction
     next(error);
   }
 };
+
 
 router.post("/calculate", calculateShipping as express.RequestHandler);
 router.get("/token", async (req: Request, res: Response) => {
