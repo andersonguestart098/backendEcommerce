@@ -20,7 +20,6 @@ const isTokenExpired = (): boolean => {
   return isExpired;
 };
 
-// Função para renovar o token de acesso
 const refreshToken = async (): Promise<void> => {
   console.log("Iniciando a renovação do token de acesso...");
   try {
@@ -33,39 +32,25 @@ const refreshToken = async (): Promise<void> => {
       }).toString(),
       {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
-        timeout: 10000,
       }
     );
 
     if (response.status === 200 && response.data.access_token) {
       melhorEnvioToken = response.data.access_token;
       tokenExpiration = Date.now() + response.data.expires_in * 1000;
-      console.log("Novo token obtido com sucesso:", melhorEnvioToken);
+      console.log("Novo token obtido com sucesso.");
     } else {
-      console.error("Falha ao obter o token de acesso. Status:", response.status);
       throw new Error("Falha ao obter o token de acesso.");
     }
   } catch (error: any) {
-    if (error.response) {
-      console.error("Erro na resposta da API:", error.response.data);
-      console.error("Status code:", error.response.status);
-    } else if (error.request) {
-      console.error("Nenhuma resposta recebida da API:", error.request);
-    } else {
-      console.error("Erro ao configurar a requisição:", error.message);
-    }
-    throw new Error("Não foi possível renovar o token de acesso. Verifique as credenciais.");
+    console.error("Erro ao renovar token:", error.message);
+    throw new Error("Erro ao renovar o token de acesso.");
   }
 };
 
-// Função para obter o token de acesso
 const getAccessToken = async (): Promise<string> => {
-  console.log("Obtendo token de acesso...");
   if (!melhorEnvioToken || isTokenExpired()) {
-    console.log("Token não encontrado ou expirado, renovando token...");
     await refreshToken();
-  } else {
-    console.log("Token de acesso ainda válido.");
   }
   return melhorEnvioToken;
 };
@@ -82,26 +67,18 @@ const obterMelhorEnvioToken = async (req: Request, res: Response): Promise<void>
   }
 };
 
-// Função para calcular o frete
 const calculateShipping = async (req: Request, res: Response) => {
-  const cepOrigem = req.query.cepOrigem as string;
-  const cepDestino = req.query.cepDestino as string;
-  const produtos = JSON.parse(req.query.produtos as string);
-
-  console.log("Iniciando cálculo de frete...");
-  console.log("Dados recebidos:", { cepOrigem, cepDestino, produtos });
+  const { cepOrigem, cepDestino, products } = req.body;
 
   try {
     const token = await getAccessToken();
-    console.log("Token de acesso obtido:", token);
 
-    // Montando o corpo da requisição conforme a documentação
     const requestBody = {
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
-      products: produtos,
-      options: {}, // Adicione opções específicas aqui, se necessário
-      volumes: [] // Adicione volumes específicos aqui, se necessário
+      products: products,
+      options: {},
+      volumes: [] 
     };
 
     const response = await axios.post(
@@ -111,34 +88,26 @@ const calculateShipping = async (req: Request, res: Response) => {
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
-          "Accept": "application/json",
-          "User-Agent": "Aplicação (email@example.com)" // Substitua com seu email
+          "User-Agent": "Aplicação (email@example.com)"
         }
       }
     );
 
-    console.log("Resposta da API de cálculo de frete:", response.data);
     res.json(response.data);
   } catch (error: any) {
-    if (error.response) {
-      console.error("Erro ao calcular frete - resposta da API:", error.response.data);
-      console.error("Status code:", error.response.status);
-    } else if (error.request) {
-      console.error("Erro ao calcular frete - nenhuma resposta recebida da API:", error.request);
-    } else {
-      console.error("Erro ao calcular frete - configuração da requisição:", error.message);
-    }
+    console.error("Erro ao calcular frete:", error.message);
     res.status(500).send("Erro ao calcular frete");
   }
 };
 
-
-// Definição das rotas
 router.post("/calculate", calculateShipping);
-
-router.get("/token", obterMelhorEnvioToken);
-router.get("/test", (req: Request, res: Response) => {
-  res.send("Rota de teste funcionando.");
+router.get("/token", async (req, res) => {
+  try {
+    const token = await getAccessToken();
+    res.json({ token });
+  } catch (error) {
+    res.status(500).send("Erro ao obter o token de acesso");
+  }
 });
 
 export default router;
