@@ -47,6 +47,7 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 
 
+
 // Rota privada de exemplo usando authMiddleware
 app.get("/private-route", authMiddleware, (req, res) => {
   res.send("Acesso autorizado");

@@ -1,5 +1,5 @@
 // shippingRoutes.ts
-import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response } from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 
@@ -20,6 +20,7 @@ const isTokenExpired = (): boolean => {
   return isExpired;
 };
 
+// Função para renovar o token
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Iniciando a renovação do token de acesso...");
@@ -48,6 +49,7 @@ const refreshToken = async (): Promise<void> => {
   }
 };
 
+// Função para obter o token de acesso
 const getAccessToken = async (): Promise<string> => {
   console.log("Obtendo token de acesso...");
   if (!melhorEnvioToken || isTokenExpired()) {
@@ -107,8 +109,9 @@ const calculateShipping = async (req: Request, res: Response) => {
   }
 };
 
+// Define as rotas
 router.post("/calculate", calculateShipping);
-router.get("/token", async (req, res) => {
+router.get("/token", async (req: Request, res: Response) => {
   try {
     const token = await getAccessToken();
     res.json({ token });
