@@ -18,7 +18,6 @@ const isTokenExpired = (): boolean => {
   return !tokenExpiration || Date.now() + bufferTime >= tokenExpiration;
 };
 
-// Função para renovar o token de acesso
 const refreshToken = async (): Promise<void> => {
   try {
     console.log("Renovando token de acesso...");
@@ -27,8 +26,7 @@ const refreshToken = async (): Promise<void> => {
       new URLSearchParams({
         client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
         client_secret: process.env.MELHOR_ENVIO_SECRET || "",
-        grant_type: "client_credentials",
-        scope: "shipping"
+        grant_type: "client_credentials"
       }).toString(),
       {
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -56,6 +54,7 @@ const refreshToken = async (): Promise<void> => {
     throw new Error("Não foi possível renovar o token de acesso. Verifique as credenciais.");
   }
 };
+
 
 // Função para obter o token de acesso
 const getAccessToken = async (): Promise<string> => {
