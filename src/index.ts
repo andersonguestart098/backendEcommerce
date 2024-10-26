@@ -15,6 +15,7 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
+
 const io = new Server(server, {
   cors: {
     origin: [
@@ -29,26 +30,27 @@ const io = new Server(server, {
   },
 });
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
-      "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
-    ],
-    methods: ["GET", "POST", "PUT", "DELETE"],
-    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
-    credentials: true, // Se necessário
-  })
-);
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
+    "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE"],
+  allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+  credentials: true,
+}));
 
+app.use(corsMiddleware);
 
 app.use(express.json());
 
 app.get("/", (req, res) => {
   res.send("Servidor funcionando.");
 });
+
+
 
 // Rotas
 app.use("/products", productRoutes);
