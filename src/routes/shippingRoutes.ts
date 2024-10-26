@@ -69,7 +69,7 @@ const calculateShipping = async (req: Request, res: Response) => {
     console.log("Token obtido para requisição:", token);
 
     const response = await axios.post(
-      `https://sandbox.melhorenvio.com.br/api/v2/me/shipment/calculate`, // Use o sandbox para teste
+      `${process.env.MELHOR_ENVIO_API_URL}/api/v2/me/shipment/calculate`, // Use o sandbox para teste
       {
         from: { postal_code: req.body.cepOrigem },
         to: { postal_code: req.body.cepDestino },
