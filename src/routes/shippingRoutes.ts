@@ -56,7 +56,6 @@ const getAccessToken = async (): Promise<string> => {
   return melhorEnvioToken;
 };
 
-// Função para extrair pacotes do corpo principal, assumindo que body.packages é um array de pacotes
 const extractPackagesFromBody = (body: any): any[] => {
   if (Array.isArray(body.packages)) {
     return body.packages;
@@ -77,14 +76,17 @@ const calculateShipping = async (req: Request, res: Response, next: NextFunction
       return res.status(400).json({ error: "Lista de pacotes inválida ou vazia." });
     }
 
-    const packageData = extractedPackages[0]; // Pega o primeiro pacote para o cálculo de frete
+    const packageData = extractedPackages[0];
+    
+    // Verifique se `packageData` e `dimensions` estão definidos
+    const dimensions = packageData?.dimensions || {};
     const requestBody = {
       from: { postal_code: cepOrigem },
       to: { postal_code: cepDestino },
       package: {
-        height: packageData.dimensions.height || 1,
-        width: packageData.dimensions.width || 1,
-        length: packageData.dimensions.length || 1,
+        height: dimensions.height || 1,
+        width: dimensions.width || 1,
+        length: dimensions.length || 1,
         weight: packageData.weight || 0.1,
       },
     };
