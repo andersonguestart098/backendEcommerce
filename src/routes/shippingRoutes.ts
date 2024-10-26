@@ -84,26 +84,14 @@ const calculateShipping = async (req: Request, res: Response) => {
 
   try {
     const melhorEnvioToken = await getAccessToken();
-
     const response = await axios.post(
       `${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`,
-      {
-        from: { postal_code: cepOrigem },
-        to: { postal_code: cepDestino },
-        products: produtos.map((item: any) => ({
-          id: item.id,
-          width: item.width,
-          height: item.height,
-          length: item.length,
-          weight: item.weight,
-          insurance_value: item.price * item.quantity,
-          quantity: item.quantity,
-        })),
-      },
+      { cepOrigem, cepDestino, produtos },
       {
         headers: {
           Authorization: `Bearer ${melhorEnvioToken}`,
           "Content-Type": "application/json",
+          "User-Agent": "MyApp (contato@exemplo.com)",
         },
       }
     );
@@ -117,8 +105,9 @@ const calculateShipping = async (req: Request, res: Response) => {
 
 
 
-// Adicionando funções ao router
+
 router.post("/calculate", calculateShipping);
+
 router.get("/token", obterMelhorEnvioToken);
 
 export default router;
