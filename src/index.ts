@@ -1,22 +1,29 @@
+// index.ts ou server.ts
 import express from "express";
 import http from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
+
 import productRoutes from "./routes/productRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
 import userRoutes from "./routes/userRoutes";
 import orderRoutes from "./routes/orderRoutes";
 import authRoutes from "./routes/authRoutes";
 import shippingRoutes from "./routes/shippingRoutes";
-import authMiddleware from "./middleware/authMiddleware";
+import webhookRoutes from "./routes/webhookRoutes";
+import paymentRoutes from "./routes/paymentRoutes"; // Importa a nova rota de pagamentos
+
+import mercadopago from "mercadopago";
 
 dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
 
-// Configuração de CORS
+// Configuração do Mercado Pago
+mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN || "");
+
 const corsOptions = {
   origin: [
     "http://localhost:3000",
@@ -29,43 +36,24 @@ const corsOptions = {
   credentials: true,
 };
 
-// Aplicando o CORS e parsing de JSON
 app.use(cors(corsOptions));
 app.use(express.json());
 
-// Rota base para teste do servidor
 app.get("/", (req, res) => {
   res.send("Servidor funcionando.");
 });
 
-// Importando e usando as rotas
+// Usando as rotas organizadas
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
 app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
+app.use("/api", webhookRoutes);
+app.use("/payment", paymentRoutes); // Rota para o pagamento
 
-
-
-// Rota privada de exemplo usando authMiddleware
-app.get("/private-route", authMiddleware, (req, res) => {
-  res.send("Acesso autorizado");
-});
-
-// Rota para verificar variáveis de ambiente
-app.get("/test-env", (req, res) => {
-  res.json({
-    clientId: process.env.MELHOR_ENVIO_CLIENT_ID,
-    secret: process.env.MELHOR_ENVIO_SECRET,
-    apiUrl: process.env.MELHOR_ENVIO_API_URL,
-  });
-});
-
-// Configuração do WebSocket com CORS
-const io = new Server(server, {
-  cors: corsOptions,
-});
+const io = new Server(server, { cors: corsOptions });
 
 io.on("connection", (socket) => {
   console.log("Novo cliente conectado:", socket.id);
@@ -80,19 +68,13 @@ io.on("connection", (socket) => {
   });
 });
 
-// Função para emitir evento quando o status do pedido muda
-const emitOrderStatusUpdate = (
-  orderId: string,
-  newStatus: string,
-  userId: string
-) => {
+// Função para atualizar o status do pedido
+const emitOrderStatusUpdate = (orderId: string, newStatus: string, userId: string) => {
   io.to(userId).emit("orderStatusUpdated", { orderId, status: newStatus });
 };
 
-// Iniciando o servidor
+// Inicializar o servidor
 const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT}`);
-});
+server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
 
 export { emitOrderStatusUpdate };

@@ -1,6 +1,8 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { emitOrderStatusUpdate } from "..";
+import mercadopago from 'mercadopago';
+
 
 const prisma = new PrismaClient();
 
@@ -10,48 +12,6 @@ interface AuthenticatedRequest extends Request {
     tipoUsuario: string;
   };
 }
-
-export const getAllOrders = async (req: Request, res: Response): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
-  const userId = authReq.user.id;
-  const userRole = authReq.user.tipoUsuario;
-
-  try {
-    let orders;
-    if (req.path === '/me' && userRole !== 'admin') {
-      orders = await prisma.order.findMany({
-        where: { userId },
-        include: {
-          products: {
-            include: {
-              product: true,
-            },
-          },
-        },
-      });
-    } else {
-      orders = await prisma.order.findMany({
-        include: {
-          products: {
-            include: {
-              product: true,
-            },
-          },
-        },
-      });
-    }
-
-    const refinedOrders = orders.map(order => ({
-      ...order,
-      products: order.products.filter(orderProduct => orderProduct.product !== null),
-    }));
-
-    res.json(refinedOrders);
-  } catch (err) {
-    console.error("Database query error:", err); // Added logging for better troubleshooting
-    res.status(500).json({ message: "Error fetching orders" });
-  }
-};
 
 
 // Fetch a specific order by ID
@@ -90,17 +50,20 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-// Create a new order
+
+// Função para criar pedido e configurar a preferência de pagamento
 export const createOrder = async (req: Request, res: Response): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
-  const { products, totalPrice } = req.body;
+  const { products, totalPrice, shippingCost } = req.body;
   const userId = authReq.user.id;
 
   try {
+    // Criação do pedido no banco de dados
     const order = await prisma.order.create({
       data: {
         userId,
         totalPrice,
+        shippingCost,
         products: {
           create: products.map((product: any) => ({
             productId: product.id,
@@ -109,21 +72,39 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
         },
       },
       include: {
-        products: {
-          include: {
-            product: true,
-          },
-        },
+        products: { include: { product: true } },
       },
     });
 
-    res.status(201).json(order);
+    // Configuração da preferência de pagamento para o Mercado Pago
+    const preference = {
+      items: products.map((product: any) => ({
+        title: product.name,
+        quantity: product.quantity,
+        unit_price: product.price,
+      })),
+      back_urls: {
+        success: "https://seu-front-end.com/order-confirmation",
+        failure: "https://seu-front-end.com/order-failure",
+        pending: "https://seu-front-end.com/order-pending",
+      },
+      auto_return: "approved" as const, // Certificando o valor como compatível
+      statement_descriptor: "Seu E-commerce",
+      external_reference: order.id.toString(),
+    };
+
+    // Criação da preferência de pagamento no Mercado Pago
+    const mercadoPagoResponse = await mercadopago.preferences.create(preference);
+
+    res.status(201).json({
+      order,
+      init_point: mercadoPagoResponse.body.init_point, // URL de checkout do Mercado Pago
+    });
   } catch (err) {
-    res.status(500).json({ message: "Error creating order" });
+    console.error("Erro ao criar pedido ou preferência de pagamento:", err);
+    res.status(500).json({ message: "Erro ao criar pedido ou preferência de pagamento" });
   }
 };
-
-
 
 export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
   const { id } = req.params;
@@ -166,3 +147,4 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     res.status(500).json({ message: "Error updating order status" });
   }
 };
+
