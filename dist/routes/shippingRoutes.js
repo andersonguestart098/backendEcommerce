@@ -80,47 +80,19 @@ const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, functi
     var _a;
     const { cepDestino, produtos } = req.body;
     if (!cepDestino || !produtos || produtos.length === 0) {
-        console.log("Dados incompletos para cálculo de frete.");
         res.status(400).send("CEP de destino e produtos são necessários.");
         return;
     }
-    console.log("CEP de destino recebido:", cepDestino);
-    console.log("Produtos recebidos para cálculo de frete:", JSON.stringify(produtos, null, 2));
     try {
-        console.log("Obtendo token de acesso do Melhor Envio...");
         const melhorEnvioToken = yield getAccessToken();
-        console.log("Token obtido, iniciando cálculo de frete...");
-        const filteredProducts = produtos.map((produto) => ({
-            id: produto.id,
-            width: produto.width,
-            height: produto.height,
-            length: produto.length,
-            weight: produto.weight,
-            insurance_value: produto.price * produto.quantity,
-            quantity: produto.quantity,
-        }));
-        console.log("Produtos filtrados para a API:", filteredProducts);
-        const response = yield axios_1.default.post("https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/shipping/calculate", {
-            cepDestino: "12345678", // Exemplo de CEP de destino
-            produtos: [
-                {
-                    id: "produto1",
-                    width: 30,
-                    height: 20,
-                    length: 40,
-                    weight: 2,
-                    price: 50,
-                    quantity: 1,
-                },
-                // Outros produtos se necessário
-            ],
-        }, {
+        const response = yield axios_1.default.post(`${process.env.MELHOR_ENVIO_API_URL}/shipping/calculate`, // Certifique-se de que o endpoint é correto
+        { cepDestino, produtos }, {
             headers: {
-                Authorization: `Bearer ${melhorEnvioToken}`, // Corrigido para usar melhorEnvioToken
+                Authorization: `Bearer ${melhorEnvioToken}`,
                 "Content-Type": "application/json",
+                "User-Agent": "MyApp (contato@exemplo.com)",
             },
         });
-        console.log("Resposta do cálculo de frete:", response.data);
         res.json(response.data);
     }
     catch (error) {
@@ -130,6 +102,5 @@ const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, functi
 });
 // Adicionando funções ao router
 router.post("/calculate", calculateShipping);
-router.get("/calculate", calculateShipping);
 router.get("/token", obterMelhorEnvioToken);
 exports.default = router;

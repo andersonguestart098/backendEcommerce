@@ -7,7 +7,7 @@ exports.emitOrderStatusUpdate = void 0;
 const express_1 = __importDefault(require("express"));
 const http_1 = __importDefault(require("http"));
 const socket_io_1 = require("socket.io");
-const corsMiddleware_1 = __importDefault(require("./middleware/corsMiddleware")); // Importando o middleware CORS
+const cors_1 = __importDefault(require("cors")); // Importando o CORS diretamente
 const productRoutes_1 = __importDefault(require("./routes/productRoutes"));
 const bannerRoutes_1 = __importDefault(require("./routes/bannerRoutes"));
 const userRoutes_1 = __importDefault(require("./routes/userRoutes"));
@@ -19,21 +19,19 @@ const shippingRoutes_1 = __importDefault(require("./routes/shippingRoutes"));
 dotenv_1.default.config();
 const app = (0, express_1.default)();
 const server = http_1.default.createServer(app);
-const io = new socket_io_1.Server(server, {
-    cors: {
-        origin: [
-            "http://localhost:3000",
-            "http://localhost:3001",
-            "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
-            "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
-        ],
-        methods: ["GET", "POST", "PUT", "DELETE"],
-        allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
-        credentials: true,
-    },
-});
-// Use o middleware CORS importado
-app.use(corsMiddleware_1.default);
+// Configuração de CORS
+const corsOptions = {
+    origin: [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "https://ecommerce-83yqvi950-andersonguestart098s-projects.vercel.app",
+        "https://demo-vendas-6jk1tuu0m-andersonguestart098s-projects.vercel.app",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+    credentials: true,
+};
+app.use((0, cors_1.default)(corsOptions));
 app.use(express_1.default.json());
 app.get("/", (req, res) => {
     res.send("Servidor funcionando.");
@@ -59,6 +57,9 @@ app.get("/test-env", (req, res) => {
     });
 });
 // WebSockets
+const io = new socket_io_1.Server(server, {
+    cors: corsOptions, // Aplicando as mesmas opções de CORS ao Socket.IO
+});
 io.on("connection", (socket) => {
     console.log("Novo cliente conectado:", socket.id);
     socket.on("userLoggedIn", (userName) => {
@@ -69,9 +70,8 @@ io.on("connection", (socket) => {
         console.log("Cliente desconectado:", socket.id);
     });
 });
-// Emit event when the order status changes
+// Emitir evento quando o status do pedido mudar
 const emitOrderStatusUpdate = (orderId, newStatus, userId) => {
-    // Emit only to the specific user related to the order
     io.to(userId).emit("orderStatusUpdated", { orderId, status: newStatus });
 };
 exports.emitOrderStatusUpdate = emitOrderStatusUpdate;
