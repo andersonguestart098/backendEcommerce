@@ -49,6 +49,18 @@ app.use("/orders", orderRoutes_1.default);
 app.use("/shipping", shippingRoutes_1.default);
 app.use("/api", webhookRoutes_1.default);
 app.use("/payment", paymentRoutes_1.default); // Rota para o pagamento
+app.get("/sucesso", (req, res) => {
+    console.log("Pagamento bem-sucedido:", req.query);
+    res.send("Pagamento realizado com sucesso!");
+});
+app.get("/falha", (req, res) => {
+    console.log("Pagamento falhou:", req.query);
+    res.send("Falha no pagamento. Por favor, tente novamente.");
+});
+app.get("/pendente", (req, res) => {
+    console.log("Pagamento pendente:", req.query);
+    res.send("Seu pagamento está pendente. Aguarde a confirmação.");
+});
 const io = new socket_io_1.Server(server, { cors: corsOptions });
 io.on("connection", (socket) => {
     console.log("Novo cliente conectado:", socket.id);

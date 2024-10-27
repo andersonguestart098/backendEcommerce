@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -43,17 +34,17 @@ const uploadToCloudinary = (file) => {
     });
 };
 // Função para fazer o upload da imagem para o Cloudinary e salvar no banco de dados
-const uploadBannerImage = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const uploadBannerImage = async (req, res) => {
     try {
         if (!req.file) {
             res.status(400).json({ message: 'Nenhuma imagem enviada' });
             return;
         }
         // Fazer upload da imagem para o Cloudinary
-        const result = yield uploadToCloudinary(req.file);
+        const result = await uploadToCloudinary(req.file);
         console.log('Resultado do Cloudinary:', result);
         // Salvar a URL da imagem no MongoDB via Prisma
-        const banner = yield prisma.banner.create({
+        const banner = await prisma.banner.create({
             data: {
                 imageUrl: result.secure_url, // Somente URL da imagem
             },
@@ -66,13 +57,13 @@ const uploadBannerImage = (req, res) => __awaiter(void 0, void 0, void 0, functi
         console.error('Erro ao fazer upload da imagem:', error);
         res.status(500).json({ message: 'Erro ao fazer upload da imagem' });
     }
-});
+};
 exports.uploadBannerImage = uploadBannerImage;
 // Função para buscar as imagens de banners salvas no MongoDB
-const getBannerImages = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getBannerImages = async (req, res) => {
     try {
         console.log('Buscando banners no banco de dados...');
-        const banners = yield prisma.banner.findMany(); // Buscar banners do banco de dados
+        const banners = await prisma.banner.findMany(); // Buscar banners do banco de dados
         console.log('Banners encontrados:', banners);
         // Certifique-se de formatar os dados corretamente
         const formattedBanners = banners.map(banner => ({
@@ -85,5 +76,5 @@ const getBannerImages = (req, res) => __awaiter(void 0, void 0, void 0, function
         console.error('Erro ao buscar imagens de banners:', error);
         res.status(500).json({ message: 'Erro ao buscar imagens' });
     }
-});
+};
 exports.getBannerImages = getBannerImages;

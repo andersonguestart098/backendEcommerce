@@ -1,37 +1,47 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.createPayment = void 0;
 const mercadopago_1 = __importDefault(require("mercadopago"));
-const createPayment = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    const payment_data = {
-        transaction_amount: req.body.amount || 100,
-        description: req.body.description || "Produto de teste",
-        payment_method_id: req.body.payment_method_id || "pix",
-        installments: req.body.installments || 1, // Número de parcelas, padrão para 1
+// Configure Mercado Pago with the access token
+mercadopago_1.default.configure({
+    access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
+});
+const createPayment = async (req, res) => {
+    console.log("Iniciando criação de pagamento...");
+    // Define payment data with specific type matches for Mercado Pago requirements
+    const paymentData = {
+        items: [
+            {
+                title: req.body.description || "Produto de exemplo",
+                quantity: 1,
+                currency_id: "BRL", // Type set to a constant for exact match
+                unit_price: parseFloat(req.body.amount) || 100,
+            },
+        ],
         payer: {
             email: req.body.email || "test_user@test.com",
         },
+        payment_methods: {
+            installments: parseInt(req.body.installments, 10) || 1,
+        },
+        back_urls: {
+            success: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/sucesso",
+            failure: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/falha",
+            pending: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/pendente",
+        },
+        auto_return: "approved", // Type explicitly narrowed for compatibility
+        external_reference: "ID_DO_PEDIDO_AQUI",
     };
     try {
-        const response = yield mercadopago_1.default.payment.create(payment_data);
-        console.log("Pagamento criado com sucesso:", response.body);
-        res.status(200).json({ message: "Pagamento criado com sucesso", data: response.body });
+        const response = await mercadopago_1.default.preferences.create(paymentData);
+        res.status(200).json({ init_point: response.body.init_point });
     }
     catch (error) {
         console.error("Erro ao criar pagamento:", error);
         res.status(500).json({ message: "Erro ao criar pagamento", error });
     }
-});
+};
 exports.createPayment = createPayment;

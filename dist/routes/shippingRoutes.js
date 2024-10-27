@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -35,11 +26,11 @@ const getApiUrl = () => {
         : "https://sandbox.melhorenvio.com.br";
 };
 // Função para renovar o token de acesso
-const refreshToken = () => __awaiter(void 0, void 0, void 0, function* () {
+const refreshToken = async () => {
     try {
         console.log("Renovando o token...");
         const apiUrl = getApiUrl();
-        const response = yield axios_1.default.post(`${apiUrl}/oauth/token`, new URLSearchParams({
+        const response = await axios_1.default.post(`${apiUrl}/oauth/token`, new URLSearchParams({
             client_id: process.env.MELHOR_ENVIO_CLIENT_ID || "",
             client_secret: process.env.MELHOR_ENVIO_SECRET || "",
             grant_type: "client_credentials",
@@ -59,26 +50,26 @@ const refreshToken = () => __awaiter(void 0, void 0, void 0, function* () {
         console.error("Erro ao renovar o token:", error.message);
         throw new Error("Erro ao renovar o token. Verifique as credenciais e o ambiente.");
     }
-});
+};
 // Função para obter o token de acesso, renovando-o se necessário
-const getAccessToken = () => __awaiter(void 0, void 0, void 0, function* () {
+const getAccessToken = async () => {
     console.log("Obtendo token de acesso...");
     if (!melhorEnvioToken || isTokenExpired()) {
         console.log("Token não encontrado ou expirado, renovando token...");
-        yield refreshToken();
+        await refreshToken();
     }
     else {
         console.log("Token de acesso ainda válido.");
     }
     return melhorEnvioToken;
-});
+};
 // Função para calcular o frete
-const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const calculateShipping = async (req, res) => {
     try {
-        const token = yield getAccessToken();
+        const token = await getAccessToken();
         console.log("Token obtido para requisição:", token);
         const apiUrl = getApiUrl();
-        const response = yield axios_1.default.post(`${apiUrl}/api/v2/me/shipment/calculate`, {
+        const response = await axios_1.default.post(`${apiUrl}/api/v2/me/shipment/calculate`, {
             from: { postal_code: req.body.cepOrigem },
             to: { postal_code: req.body.cepDestino },
             package: {
@@ -106,18 +97,18 @@ const calculateShipping = (req, res) => __awaiter(void 0, void 0, void 0, functi
             res.status(500).json({ error: "Erro ao calcular frete." });
         }
     }
-});
+};
 // Rota para cálculo de frete com autenticação
 router.post("/calculate", melhorEnvioMiddleware_1.autenticarComMelhorEnvio, calculateShipping);
 // Rota para verificar o token atual (opcional, para debugging)
-router.get("/token", (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+router.get("/token", async (req, res) => {
     try {
-        const token = yield getAccessToken();
+        const token = await getAccessToken();
         res.json({ token });
     }
     catch (error) {
         console.error("Erro ao obter o token de acesso:", error);
         res.status(500).send("Erro ao obter o token de acesso");
     }
-}));
+});
 exports.default = router;

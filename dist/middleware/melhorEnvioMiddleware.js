@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -19,7 +10,7 @@ dotenv_1.default.config();
 let melhorEnvioToken = "";
 let tokenExpiration = null;
 // Função para obter o token de acesso do Melhor Envio
-const getAccessToken = () => __awaiter(void 0, void 0, void 0, function* () {
+const getAccessToken = async () => {
     // Verifique se o token está disponível e ainda válido
     if (melhorEnvioToken && tokenExpiration && tokenExpiration > Date.now()) {
         console.log("Token de acesso ainda válido, reutilizando o token existente.");
@@ -32,7 +23,7 @@ const getAccessToken = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         console.log("Iniciando a obtenção do token de acesso...");
         // Envia a requisição para obter o token
-        const response = yield axios_1.default.post(`${process.env.MELHOR_ENVIO_API_URL || "https://api.melhorenvio.com.br"}/oauth/token`, new URLSearchParams({
+        const response = await axios_1.default.post(`${process.env.MELHOR_ENVIO_API_URL || "https://api.melhorenvio.com.br"}/oauth/token`, new URLSearchParams({
             client_id: process.env.MELHOR_ENVIO_CLIENT_ID,
             client_secret: process.env.MELHOR_ENVIO_SECRET,
             grant_type: "client_credentials",
@@ -64,12 +55,12 @@ const getAccessToken = () => __awaiter(void 0, void 0, void 0, function* () {
         }
         throw new Error("Falha ao autenticar na API do Melhor Envio. Verifique as credenciais.");
     }
-});
+};
 exports.getAccessToken = getAccessToken;
 // Middleware para obter e anexar o token de acesso ao request
-const autenticarComMelhorEnvio = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
+const autenticarComMelhorEnvio = async (req, res, next) => {
     try {
-        const token = yield getAccessToken();
+        const token = await getAccessToken();
         req.headers.authorization = `Bearer ${token}`;
         next();
     }
@@ -77,17 +68,17 @@ const autenticarComMelhorEnvio = (req, res, next) => __awaiter(void 0, void 0, v
         console.error("Erro ao autenticar com Melhor Envio:", error);
         res.status(500).send("Erro ao autenticar com Melhor Envio.");
     }
-});
+};
 exports.autenticarComMelhorEnvio = autenticarComMelhorEnvio;
 // Middleware opcional para fornecer o token diretamente
-const fornecerMelhorEnvioToken = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const fornecerMelhorEnvioToken = async (req, res) => {
     try {
-        const token = yield getAccessToken();
+        const token = await getAccessToken();
         res.json({ token });
     }
     catch (error) {
         console.error("Erro ao fornecer o token de acesso:", error);
         res.status(500).send("Erro ao obter o token de acesso");
     }
-});
+};
 exports.fornecerMelhorEnvioToken = fornecerMelhorEnvioToken;

@@ -1,13 +1,4 @@
 "use strict";
-var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
-    function adopt(value) { return value instanceof P ? value : new P(function (resolve) { resolve(value); }); }
-    return new (P || (P = Promise))(function (resolve, reject) {
-        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
-        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
-        function step(result) { result.done ? resolve(result.value) : adopt(result.value).then(fulfilled, rejected); }
-        step((generator = generator.apply(thisArg, _arguments || [])).next());
-    });
-};
 var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
@@ -36,9 +27,9 @@ cloudinary_1.default.v2.config({
     api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 // Function to upload an image to Cloudinary in a specific folder
-const uploadImageToCloudinary = (filePath, folder) => __awaiter(void 0, void 0, void 0, function* () {
+const uploadImageToCloudinary = async (filePath, folder) => {
     try {
-        const result = yield cloudinary_1.default.v2.uploader.upload(filePath, {
+        const result = await cloudinary_1.default.v2.uploader.upload(filePath, {
             folder, // Save in the specified directory
         });
         return result.secure_url;
@@ -47,8 +38,8 @@ const uploadImageToCloudinary = (filePath, folder) => __awaiter(void 0, void 0, 
         console.error('Error uploading to Cloudinary:', error);
         throw new Error('Image upload failed');
     }
-});
-const getAllProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+};
+const getAllProducts = async (req, res) => {
     const { search, color, minPrice, maxPrice } = req.query;
     try {
         const query = {
@@ -81,19 +72,19 @@ const getAllProducts = (req, res) => __awaiter(void 0, void 0, void 0, function*
         if (maxPrice) {
             query.where.price = Object.assign(Object.assign({}, query.where.price), { lte: parseFloat(String(maxPrice)) });
         }
-        const products = yield prisma.product.findMany(query);
+        const products = await prisma.product.findMany(query);
         res.json(products);
     }
     catch (err) {
         res.status(500).json({ message: 'Error fetching products', error: err });
     }
-});
+};
 exports.getAllProducts = getAllProducts;
 // Fetch a product by ID
-const getProductById = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const getProductById = async (req, res) => {
     const { id } = req.params;
     try {
-        const product = yield prisma.product.findUnique({
+        const product = await prisma.product.findUnique({
             where: { id },
             include: { colors: true }, // Include colors when fetching by ID
         });
@@ -107,10 +98,10 @@ const getProductById = (req, res) => __awaiter(void 0, void 0, void 0, function*
     catch (err) {
         res.status(500).json({ message: 'Error fetching product', error: err });
     }
-});
+};
 exports.getProductById = getProductById;
 // Create a new product
-const createProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+const createProduct = async (req, res) => {
     const { name, price, description, discount, paymentOptions, colorNames, metersPerBox, weightPerBox, boxDimensions, materialType, freightClass } = req.body;
     try {
         const files = req.files;
@@ -132,9 +123,9 @@ const createProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             return;
         }
         // Upload main images to Cloudinary
-        const imageUrls = yield Promise.all(imageFiles.map((file) => uploadImageToCloudinary(file.path, 'product_images')));
+        const imageUrls = await Promise.all(imageFiles.map((file) => uploadImageToCloudinary(file.path, 'product_images')));
         // Create the Product first
-        const newProduct = yield prisma.product.create({
+        const newProduct = await prisma.product.create({
             data: {
                 name,
                 price: parseFloat(price),
@@ -150,29 +141,29 @@ const createProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
         // Now create the PaymentOptions separately and link them to the Product
         if (Array.isArray(paymentOptions)) {
-            yield Promise.all(paymentOptions.map((option) => __awaiter(void 0, void 0, void 0, function* () {
-                yield prisma.paymentOption.create({
+            await Promise.all(paymentOptions.map(async (option) => {
+                await prisma.paymentOption.create({
                     data: {
                         option, // Use the option field correctly
                         productId: newProduct.id, // Relaciona ao ID do produto recém-criado
                     },
                 });
-            })));
+            }));
         }
         // Upload color images and save in the database
-        yield Promise.all(colorFiles.map((file, index) => __awaiter(void 0, void 0, void 0, function* () {
-            const colorImageUrl = yield uploadImageToCloudinary(file.path, 'pisoColors');
+        await Promise.all(colorFiles.map(async (file, index) => {
+            const colorImageUrl = await uploadImageToCloudinary(file.path, 'pisoColors');
             const colorName = colorNamesArray[index];
-            yield prisma.color.create({
+            await prisma.color.create({
                 data: {
                     name: colorName,
                     image: colorImageUrl,
                     productId: newProduct.id,
                 },
             });
-        })));
+        }));
         // Fetch and return the created product with associated colors and payment options
-        const updatedProduct = yield prisma.product.findUnique({
+        const updatedProduct = await prisma.product.findUnique({
             where: { id: newProduct.id },
             include: { colors: true, paymentOptions: true },
         });
@@ -182,5 +173,5 @@ const createProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         console.error('Error creating product:', err);
         res.status(500).json({ message: 'Error creating product', error: err });
     }
-});
+};
 exports.createProduct = createProduct;
