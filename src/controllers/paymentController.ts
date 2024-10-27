@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import mercadopago from "mercadopago";
 
-// Configure Mercado Pago with the access token
 mercadopago.configure({
     access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
 });
@@ -9,28 +8,36 @@ mercadopago.configure({
 export const createPayment = async (req: Request, res: Response) => {
     console.log("Iniciando criação de pagamento...");
 
-    // Define payment data with specific type matches for Mercado Pago requirements
+    const { products, totalPrice, paymentMethod, shippingCost, email } = req.body;
+
     const paymentData = {
-        items: [
-            {
-                title: req.body.description || "Produto de exemplo",
-                quantity: 1,
-                currency_id: "BRL" as const, // Type set to a constant for exact match
-                unit_price: parseFloat(req.body.amount) || 100,
-            },
-        ],
+        items: products.map((product: any) => ({
+            title: product.name,
+            quantity: product.quantity,
+            currency_id: "BRL" as const,
+            unit_price: product.price,
+        })),
         payer: {
-            email: req.body.email || "test_user@test.com",
+            email: email || "test_user@test.com",
         },
         payment_methods: {
-            installments: parseInt(req.body.installments, 10) || 1,
+            // Excluir tipos de pagamento baseados na opção selecionada
+            excluded_payment_types:
+                paymentMethod === "PIX"
+                    ? [{ id: "credit_card" }, { id: "ticket" }] // Excluir cartão de crédito e boleto para PIX
+                    : paymentMethod === "Boleto Bancário"
+                    ? [{ id: "credit_card" }, { id: "pix" }] // Excluir cartão e PIX para Boleto
+                    : paymentMethod === "Cartão de Crédito"
+                    ? [{ id: "pix" }, { id: "ticket" }] // Excluir PIX e boleto para Cartão de Crédito
+                    : [],
+            installments: paymentMethod === "Cartão de Crédito" ? 12 : 1, // Configura parcelas para cartão de crédito
         },
         back_urls: {
-            success: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/sucesso",
-            failure: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/falha",
-            pending: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/pendente",
+            success: "http://localhoste:3000/sucesso",
+            failure: "http://localhoste:3000/falha",
+            pending: "http://localhoste:3000/pendente",
         },
-        auto_return: "approved" as "approved" | "all", // Type explicitly narrowed for compatibility
+        auto_return: "approved" as "approved" | "all",
         external_reference: "ID_DO_PEDIDO_AQUI",
     };
 
