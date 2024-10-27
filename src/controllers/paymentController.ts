@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import mercadopago from "mercadopago";
 
+// Configuração do Mercado Pago com o token de acesso
 mercadopago.configure({
     access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
 });
@@ -8,37 +9,42 @@ mercadopago.configure({
 export const createPayment = async (req: Request, res: Response) => {
     console.log("Iniciando criação de pagamento...");
 
-    const { products, totalPrice, paymentMethod, shippingCost, email } = req.body;
+    const { products, paymentMethod, email, firstName, lastName, shippingCost } = req.body;
 
     const paymentData = {
         items: products.map((product: any) => ({
+            id: product.id, // Código único do item
             title: product.name,
+            description: product.description || "Descrição do produto",
+            category_id: product.category_id || "outros", // Categoria do item
             quantity: product.quantity,
             currency_id: "BRL" as const,
             unit_price: product.price,
         })),
         payer: {
             email: email || "test_user@test.com",
+            first_name: firstName || "Nome", // Nome do comprador
+            last_name: lastName || "Sobrenome" // Sobrenome do comprador
         },
         payment_methods: {
-            // Excluir tipos de pagamento baseados na opção selecionada
             excluded_payment_types:
                 paymentMethod === "PIX"
-                    ? [{ id: "credit_card" }, { id: "ticket" }] // Excluir cartão de crédito e boleto para PIX
+                    ? [{ id: "credit_card" }, { id: "ticket" }]
                     : paymentMethod === "Boleto Bancário"
-                    ? [{ id: "credit_card" }, { id: "pix" }] // Excluir cartão e PIX para Boleto
+                    ? [{ id: "credit_card" }, { id: "pix" }]
                     : paymentMethod === "Cartão de Crédito"
-                    ? [{ id: "pix" }, { id: "ticket" }] // Excluir PIX e boleto para Cartão de Crédito
+                    ? [{ id: "pix" }, { id: "ticket" }]
                     : [],
-            installments: paymentMethod === "Cartão de Crédito" ? 12 : 1, // Configura parcelas para cartão de crédito
+            installments: paymentMethod === "Cartão de Crédito" ? 12 : 1,
         },
         back_urls: {
-            success: "http://localhoste:3000/sucesso",
-            failure: "http://localhoste:3000/falha",
-            pending: "http://localhoste:3000/pendente",
+            success: "http://localhost:3000/sucesso",
+            failure: "http://localhost:3000/falha",
+            pending: "http://localhost:3000/pendente",
         },
         auto_return: "approved" as "approved" | "all",
         external_reference: "ID_DO_PEDIDO_AQUI",
+        notification_url: "http://localhost:3001/webhook", // URL para receber notificações Webhook
     };
 
     try {
