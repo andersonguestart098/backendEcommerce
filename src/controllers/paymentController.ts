@@ -46,7 +46,7 @@ export const createPayment = async (req: Request, res: Response) => {
       pending:
         "https://ecommerce-50sadqurk-andersonguestart098s-projects.vercel.app/pendente",
     },
-    auto_return: "approved" as "approved" | "all",
+    auto_return: "approved" as const,
     external_reference: "ID_DO_PEDIDO_AQUI",
     notification_url:
       "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhook", // URL para receber notificações Webhook
