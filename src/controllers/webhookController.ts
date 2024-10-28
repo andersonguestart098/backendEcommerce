@@ -11,24 +11,20 @@ export const handleMercadoPagoWebhook = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { id, type } = req.query;
+  const { id, type, action, data } = req.body;
 
-  if (type === "payment" && typeof id === "string") {
+  if (type === "payment" && action === "payment.updated" && data && data.id) {
     try {
-      const paymentId = parseInt(id, 10);
+      const paymentId = parseInt(data.id, 10);
+
       if (isNaN(paymentId)) {
         console.error("ID de pagamento inválido");
         res.sendStatus(400);
         return;
       }
 
+      // Continuar com o processamento do pagamento
       const payment = await mercadopago.payment.findById(paymentId);
-      if (!payment.body) {
-        console.error("Pagamento não encontrado");
-        res.sendStatus(404);
-        return;
-      }
-
       const orderId = payment.body.external_reference;
       const status = payment.body.status;
 
