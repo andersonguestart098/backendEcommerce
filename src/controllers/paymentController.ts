@@ -40,11 +40,11 @@ export const createPayment = async (req: Request, res: Response) => {
     },
     back_urls: {
       success:
-        "https://ecommerce-50sadqurk-andersonguestart098s-projects.vercel.app/sucesso",
+        "https://ecommerce-lq782sty7-andersonguestart098s-projects.vercel.app/sucesso",
       failure:
-        "https://ecommerce-50sadqurk-andersonguestart098s-projects.vercel.app/falha",
+        "https://ecommerce-lq782sty7-andersonguestart098s-projects.vercel.app/falha",
       pending:
-        "https://ecommerce-50sadqurk-andersonguestart098s-projects.vercel.app/pendente",
+        "https://ecommerce-lq782sty7-andersonguestart098s-projects.vercel.app/pendente",
     },
     auto_return: "approved" as const,
     external_reference: "ID_DO_PEDIDO_AQUI",
