@@ -22,7 +22,9 @@ const app = express();
 const server = http.createServer(app);
 
 // Configuração do Mercado Pago
-mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN || "");
+mercadopago.configurations.setAccessToken(
+  process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
+);
 
 const corsOptions = {
   origin: [
@@ -56,6 +58,7 @@ app.get("/sucesso", (req, res) => {
   console.log("Pagamento bem-sucedido:", req.query);
   res.send("Pagamento realizado com sucesso!");
 });
+app.use("/webhooks", webhookRoutes);
 
 app.get("/falha", (req, res) => {
   console.log("Pagamento falhou:", req.query);
@@ -66,7 +69,6 @@ app.get("/pendente", (req, res) => {
   console.log("Pagamento pendente:", req.query);
   res.send("Seu pagamento está pendente. Aguarde a confirmação.");
 });
-
 
 const io = new Server(server, { cors: corsOptions });
 
@@ -84,7 +86,11 @@ io.on("connection", (socket) => {
 });
 
 // Função para atualizar o status do pedido
-const emitOrderStatusUpdate = (orderId: string, newStatus: string, userId: string) => {
+const emitOrderStatusUpdate = (
+  orderId: string,
+  newStatus: string,
+  userId: string
+) => {
   io.to(userId).emit("orderStatusUpdated", { orderId, status: newStatus });
 };
 
