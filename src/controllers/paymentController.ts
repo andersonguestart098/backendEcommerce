@@ -1,12 +1,9 @@
 import { Request, Response } from "express";
 import mercadopago from "mercadopago";
 
-// Configuração do Mercado Pago com o token de sandbox ou produção
-const isSandbox = process.env.NODE_ENV !== "production";
+// Configuração do Mercado Pago com o token de acesso
 mercadopago.configure({
-  access_token: isSandbox
-    ? process.env.MERCADO_PAGO_SANDBOX_ACCESS_TOKEN || ""
-    : process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
+  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 });
 
 export const createPayment = async (req: Request, res: Response) => {
@@ -17,18 +14,18 @@ export const createPayment = async (req: Request, res: Response) => {
 
   const paymentData = {
     items: products.map((product: any) => ({
-      id: product.id,
+      id: product.id, // Código único do item
       title: product.name,
       description: product.description || "Descrição do produto",
-      category_id: product.category_id || "outros",
+      category_id: product.category_id || "outros", // Categoria do item
       quantity: product.quantity,
       currency_id: "BRL" as const,
       unit_price: product.price,
     })),
     payer: {
       email: email || "test_user@test.com",
-      first_name: firstName || "Nome",
-      last_name: lastName || "Sobrenome",
+      first_name: firstName || "Nome", // Nome do comprador
+      last_name: lastName || "Sobrenome", // Sobrenome do comprador
     },
     payment_methods: {
       excluded_payment_types:
@@ -42,13 +39,17 @@ export const createPayment = async (req: Request, res: Response) => {
       installments: paymentMethod === "Cartão de Crédito" ? 12 : 1,
     },
     back_urls: {
-      success: `${process.env.FRONTEND_URL}/sucesso`,
-      failure: `${process.env.FRONTEND_URL}/falha`,
-      pending: `${process.env.FRONTEND_URL}/pendente`,
+      success:
+        "https://ecommerce-bl0486y1f-andersonguestart098s-projects.vercel.app/sucesso",
+      failure:
+        "https://ecommerce-bl0486y1f-andersonguestart098s-projects.vercel.app/falha",
+      pending:
+        "https://ecommerce-bl0486y1f-andersonguestart098s-projects.vercel.app/pendente",
     },
     auto_return: "approved" as const,
     external_reference: "ID_DO_PEDIDO_AQUI",
-    notification_url: `${process.env.BACKEND_URL}/webhook`,
+    notification_url:
+      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhook", // URL para receber notificações Webhook
   };
 
   try {
