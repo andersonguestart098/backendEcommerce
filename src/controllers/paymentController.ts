@@ -6,55 +6,79 @@ mercadopago.configure({
   access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 });
 
-export const createPayment = async (req: Request, res: Response) => {
+export const createTransparentPayment = async (req: Request, res: Response) => {
   console.log("Iniciando criação de pagamento...");
 
-  const { products, paymentMethod, email, firstName, lastName, shippingCost } =
-    req.body;
+  const {
+    products,
+    paymentMethod,
+    email,
+    firstName,
+    lastName,
+    shippingCost,
+    token,
+    transactionAmount,
+  } = req.body;
 
   const paymentData = {
-    items: products.map((product: any) => ({
-      id: product.id, // Código único do item
-      title: product.name,
-      description: product.description || "Descrição do produto",
-      category_id: product.category_id || "outros", // Categoria do item
-      quantity: product.quantity,
-      currency_id: "BRL" as const,
-      unit_price: product.price,
-    })),
+    transaction_amount: transactionAmount,
+    token, // Token gerado no frontend pelo SDK do Mercado Pago
+    description: "Compra de produtos",
+    installments: paymentMethod === "Cartão de Crédito" ? 12 : 1, // Número de parcelas (para cartão de crédito)
+    payment_method_id:
+      paymentMethod === "Cartão de Crédito" ? "visa" : paymentMethod, // Define o método de pagamento
     payer: {
       email: email || "test_user@test.com",
-      first_name: firstName || "Nome", // Nome do comprador
-      last_name: lastName || "Sobrenome", // Sobrenome do comprador
+      first_name: firstName || "Nome",
+      last_name: lastName || "Sobrenome",
+      identification: {
+        type: "CPF", // Tipo de identificação
+        number: "12345678909", // Número de identificação (deve vir do frontend em produção)
+      },
     },
-    payment_methods: {
-      excluded_payment_types:
-        paymentMethod === "PIX"
-          ? [{ id: "credit_card" }, { id: "ticket" }]
-          : paymentMethod === "Boleto Bancário"
-          ? [{ id: "credit_card" }, { id: "pix" }]
-          : paymentMethod === "Cartão de Crédito"
-          ? [{ id: "pix" }, { id: "ticket" }]
-          : [],
-      installments: paymentMethod === "Cartão de Crédito" ? 12 : 1,
+    statement_descriptor: "Seu E-commerce", // Nome que aparece na fatura do cartão
+    notification_url: `${process.env.BACKEND_URL}/webhook`, // URL para notificações do webhook
+    additional_info: {
+      items: products.map((product: any) => ({
+        id: product.id,
+        title: product.name,
+        description: product.description || "Descrição do produto",
+        category_id: product.category_id || "outros",
+        quantity: product.quantity,
+        unit_price: product.price,
+      })),
+      payer: {
+        first_name: firstName,
+        last_name: lastName,
+        address: {
+          zip_code: "12345-678", // CEP (Exemplo fixo, ajuste conforme necessário)
+          street_name: "Rua Exemplo", // Endereço do cliente (Exemplo fixo)
+          street_number: 123, // Mudança para número
+        },
+      },
+      shipments: {
+        receiver_address: "Rua Exemplo, 123, 1º andar, apt 101, 12345-678", // Campo simplificado para string
+      },
     },
-    back_urls: {
-      success:
-        "https://ecommerce-bl0486y1f-andersonguestart098s-projects.vercel.app/sucesso",
-      failure:
-        "https://ecommerce-bl0486y1f-andersonguestart098s-projects.vercel.app/falha",
-      pending:
-        "https://ecommerce-bl0486y1f-andersonguestart098s-projects.vercel.app/pendente",
-    },
-    auto_return: "approved" as const,
-    external_reference: "ID_DO_PEDIDO_AQUI",
-    notification_url:
-      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhook", // URL para receber notificações Webhook
   };
 
   try {
-    const response = await mercadopago.preferences.create(paymentData);
-    res.status(200).json({ init_point: response.body.init_point });
+    // Criação do pagamento direto com o token e dados do cliente
+    const response = await mercadopago.payment.create(paymentData);
+    if (response.body.status === "approved") {
+      res.status(200).json({
+        message: "Pagamento aprovado",
+        status: response.body.status,
+        status_detail: response.body.status_detail,
+        id: response.body.id,
+      });
+    } else {
+      res.status(200).json({
+        message: "Pagamento pendente ou recusado",
+        status: response.body.status,
+        status_detail: response.body.status_detail,
+      });
+    }
   } catch (error) {
     console.error("Erro ao criar pagamento:", error);
     res.status(500).json({ message: "Erro ao criar pagamento", error });
