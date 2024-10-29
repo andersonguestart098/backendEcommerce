@@ -79,7 +79,8 @@ export const createTransparentPayment = async (
       identification: payer.identification,
     },
     statement_descriptor: "Seu E-commerce",
-    notification_url: `${process.env.BACKEND_URL}/mercado-pago/webhook `,
+    notification_url:
+      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/mercado-pago/webhook",
   };
 
   try {
