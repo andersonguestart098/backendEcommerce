@@ -14,7 +14,7 @@ import shippingRoutes from "./routes/shippingRoutes";
 import webhookRoutes from "./routes/webhookRoutes";
 import paymentRoutes from "./routes/paymentRoutes"; // Importa a nova rota de pagamentos
 
-import mercadopago from "mercadopago";
+const mercadopago = require("mercadopago");
 
 dotenv.config();
 

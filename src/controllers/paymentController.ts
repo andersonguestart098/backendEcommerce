@@ -1,5 +1,5 @@
 import { Request, Response } from "express";
-import mercadopago from "mercadopago";
+const mercadopago = require("mercadopago");
 
 mercadopago.configure({
   access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
@@ -19,25 +19,24 @@ export const createTransparentPayment = async (req: Request, res: Response) => {
     transactionAmount,
   } = req.body;
 
-  // Configuração dos dados de pagamento, incluindo produtos, parcelas e dados do comprador
-  const paymentData: mercadopago.payment.CreatePaymentPayload = {
+  const paymentData = {
     transaction_amount: transactionAmount,
-    token, // Token gerado no frontend pelo SDK do Mercado Pago
+    token,
     description: "Compra de produtos",
-    installments: paymentMethod === "Cartão de Crédito" ? 12 : 1, // Número de parcelas
+    installments: paymentMethod === "Cartão de Crédito" ? 12 : 1,
     payment_method_id:
-      paymentMethod === "Cartão de Crédito" ? "visa" : paymentMethod, // Método de pagamento
+      paymentMethod === "Cartão de Crédito" ? "visa" : paymentMethod,
     payer: {
       email: email || "test_user@test.com",
       first_name: firstName || "Nome",
       last_name: lastName || "Sobrenome",
       identification: {
         type: "CPF",
-        number: "12345678909", // Substitua por um valor dinâmico em produção
+        number: "12345678909",
       },
     },
-    statement_descriptor: "Seu E-commerce", // Nome na fatura
-    notification_url: `${process.env.BACKEND_URL}/webhook`, // URL do webhook para notificações
+    statement_descriptor: "Seu E-commerce",
+    notification_url: `${process.env.BACKEND_URL}/webhook`,
     additional_info: {
       items: products.map((product: any) => ({
         id: product.id,
@@ -51,19 +50,18 @@ export const createTransparentPayment = async (req: Request, res: Response) => {
         first_name: firstName,
         last_name: lastName,
         address: {
-          zip_code: "12345-678", // CEP do cliente (substitua conforme necessário)
+          zip_code: "12345-678",
           street_name: "Rua Exemplo",
           street_number: 123,
         },
       },
       shipments: {
-        receiver_address: "Rua Exemplo, 123, 1º andar, apt 101, 12345-678", // Formato simplificado para string
+        receiver_address: "Rua Exemplo, 123, 1º andar, apt 101, 12345-678",
       },
     },
   };
 
   try {
-    // Realiza o pagamento com os dados fornecidos
     const response = await mercadopago.payment.create(paymentData);
     if (response.body.status === "approved") {
       res.status(200).json({
