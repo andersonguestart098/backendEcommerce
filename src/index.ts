@@ -46,7 +46,7 @@ app.get("/", (req, res) => {
   res.send("Servidor funcionando.");
 });
 
-// Rota de pagamento (inclui a rota /process_payment no paymentRoutes)
+// Rota de pagamento
 app.use("/payment", paymentRoutes);
 
 // Outras rotas

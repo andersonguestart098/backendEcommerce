@@ -1,4 +1,3 @@
-// routes/paymentRoutes.ts
 import express from "express";
 import { createTransparentPayment } from "../controllers/paymentController";
 

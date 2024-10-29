@@ -1,11 +1,14 @@
-import { Request, Response } from "express";
+import { Request, Response, RequestHandler } from "express";
 const mercadopago = require("mercadopago");
 
 mercadopago.configure({
   access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 });
 
-export const createTransparentPayment = async (req: Request, res: Response) => {
+export const createTransparentPayment: RequestHandler = async (
+  req: Request,
+  res: Response
+) => {
   console.log("Iniciando criação de pagamento...");
   console.log("Dados recebidos no backend:", req.body);
 
