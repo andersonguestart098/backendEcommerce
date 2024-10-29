@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import mercadopago from "mercadopago";
 
-// Configuração do Mercado Pago com o token de acesso
 mercadopago.configure({
   access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 });
@@ -20,24 +19,25 @@ export const createTransparentPayment = async (req: Request, res: Response) => {
     transactionAmount,
   } = req.body;
 
-  const paymentData = {
+  // Configuração dos dados de pagamento, incluindo produtos, parcelas e dados do comprador
+  const paymentData: mercadopago.payment.CreatePaymentPayload = {
     transaction_amount: transactionAmount,
     token, // Token gerado no frontend pelo SDK do Mercado Pago
     description: "Compra de produtos",
-    installments: paymentMethod === "Cartão de Crédito" ? 12 : 1, // Número de parcelas (para cartão de crédito)
+    installments: paymentMethod === "Cartão de Crédito" ? 12 : 1, // Número de parcelas
     payment_method_id:
-      paymentMethod === "Cartão de Crédito" ? "visa" : paymentMethod, // Define o método de pagamento
+      paymentMethod === "Cartão de Crédito" ? "visa" : paymentMethod, // Método de pagamento
     payer: {
       email: email || "test_user@test.com",
       first_name: firstName || "Nome",
       last_name: lastName || "Sobrenome",
       identification: {
-        type: "CPF", // Tipo de identificação
-        number: "12345678909", // Número de identificação (deve vir do frontend em produção)
+        type: "CPF",
+        number: "12345678909", // Substitua por um valor dinâmico em produção
       },
     },
-    statement_descriptor: "Seu E-commerce", // Nome que aparece na fatura do cartão
-    notification_url: `${process.env.BACKEND_URL}/webhook`, // URL para notificações do webhook
+    statement_descriptor: "Seu E-commerce", // Nome na fatura
+    notification_url: `${process.env.BACKEND_URL}/webhook`, // URL do webhook para notificações
     additional_info: {
       items: products.map((product: any) => ({
         id: product.id,
@@ -51,19 +51,19 @@ export const createTransparentPayment = async (req: Request, res: Response) => {
         first_name: firstName,
         last_name: lastName,
         address: {
-          zip_code: "12345-678", // CEP (Exemplo fixo, ajuste conforme necessário)
-          street_name: "Rua Exemplo", // Endereço do cliente (Exemplo fixo)
-          street_number: 123, // Mudança para número
+          zip_code: "12345-678", // CEP do cliente (substitua conforme necessário)
+          street_name: "Rua Exemplo",
+          street_number: 123,
         },
       },
       shipments: {
-        receiver_address: "Rua Exemplo, 123, 1º andar, apt 101, 12345-678", // Campo simplificado para string
+        receiver_address: "Rua Exemplo, 123, 1º andar, apt 101, 12345-678", // Formato simplificado para string
       },
     },
   };
 
   try {
-    // Criação do pagamento direto com o token e dados do cliente
+    // Realiza o pagamento com os dados fornecidos
     const response = await mercadopago.payment.create(paymentData);
     if (response.body.status === "approved") {
       res.status(200).json({
