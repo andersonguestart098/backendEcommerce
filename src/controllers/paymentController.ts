@@ -79,7 +79,7 @@ export const createTransparentPayment = async (
       identification: payer.identification,
     },
     statement_descriptor: "Seu E-commerce",
-    notification_url: `${process.env.BACKEND_URL}/webhooks`,
+    notification_url: `${process.env.BACKEND_URL}/mercado-pago/webhook `,
   };
 
   try {
