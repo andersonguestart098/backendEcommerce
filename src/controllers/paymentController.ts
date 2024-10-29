@@ -7,6 +7,7 @@ mercadopago.configure({
 
 export const createTransparentPayment = async (req: Request, res: Response) => {
   console.log("Iniciando criação de pagamento...");
+  console.log("Dados recebidos:", req.body);
 
   const {
     products,
@@ -36,7 +37,7 @@ export const createTransparentPayment = async (req: Request, res: Response) => {
       },
     },
     statement_descriptor: "Seu E-commerce",
-    notification_url: `${process.env.BACKEND_URL}/webhook`,
+    notification_url: `${process.env.BACKEND_URL}/webhooks`,
     additional_info: {
       items: products.map((product: any) => ({
         id: product.id,
@@ -63,6 +64,8 @@ export const createTransparentPayment = async (req: Request, res: Response) => {
 
   try {
     const response = await mercadopago.payment.create(paymentData);
+    console.log("Resposta do Mercado Pago:", response.body);
+
     if (response.body.status === "approved") {
       res.status(200).json({
         message: "Pagamento aprovado",
@@ -77,8 +80,11 @@ export const createTransparentPayment = async (req: Request, res: Response) => {
         status_detail: response.body.status_detail,
       });
     }
-  } catch (error) {
-    console.error("Erro ao criar pagamento:", error);
+  } catch (error: any) {
+    console.error(
+      "Erro ao criar pagamento:",
+      error.response ? error.response.data : error
+    );
     res.status(500).json({ message: "Erro ao criar pagamento", error });
   }
 };
