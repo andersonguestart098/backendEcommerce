@@ -5,6 +5,6 @@ import { createTransparentPayment } from "../controllers/paymentController";
 const router = express.Router();
 
 // Rota para criar pagamento
-router.post("/create-payment", createTransparentPayment);
+router.post("/process_payment", createTransparentPayment);
 
 export default router;
