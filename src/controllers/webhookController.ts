@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import mercadopago from "mercadopago";
+const mercadopago = require("mercadopago");
 
 const prisma = new PrismaClient();
 mercadopago.configurations.setAccessToken(

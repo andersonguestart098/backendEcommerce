@@ -1,8 +1,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { emitOrderStatusUpdate } from "..";
-import mercadopago from 'mercadopago';
-
+const mercadopago = require("mercadopago");
 
 const prisma = new PrismaClient();
 
@@ -14,12 +13,20 @@ interface AuthenticatedRequest extends Request {
 }
 
 // Função para listar todos os pedidos (apenas para administradores)
-export const getAllOrders = async (req: Request, res: Response): Promise<void> => {
+export const getAllOrders = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
   const userRole = authReq.user.tipoUsuario;
 
   if (userRole !== "admin") {
-    res.status(403).json({ message: "Acesso negado: apenas administradores podem ver todos os pedidos" });
+    res
+      .status(403)
+      .json({
+        message:
+          "Acesso negado: apenas administradores podem ver todos os pedidos",
+      });
     return;
   }
 
@@ -41,7 +48,10 @@ export const getAllOrders = async (req: Request, res: Response): Promise<void> =
 };
 
 // Fetch a specific order by ID
-export const getOrderById = async (req: Request, res: Response): Promise<void> => {
+export const getOrderById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   const authReq = req as AuthenticatedRequest;
   const userId = authReq.user.id;
@@ -67,7 +77,9 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
     // Remove invalid entries
     const refinedOrder = {
       ...order,
-      products: order.products.filter(orderProduct => orderProduct.product !== null),
+      products: order.products.filter(
+        (orderProduct) => orderProduct.product !== null
+      ),
     };
 
     res.json(refinedOrder);
@@ -76,9 +88,11 @@ export const getOrderById = async (req: Request, res: Response): Promise<void> =
   }
 };
 
-
 // Função para criar pedido e configurar a preferência de pagamento
-export const createOrder = async (req: Request, res: Response): Promise<void> => {
+export const createOrder = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
   const { products, totalPrice, shippingCost } = req.body;
   const userId = authReq.user.id;
@@ -120,7 +134,9 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     };
 
     // Criação da preferência de pagamento no Mercado Pago
-    const mercadoPagoResponse = await mercadopago.preferences.create(preference);
+    const mercadoPagoResponse = await mercadopago.preferences.create(
+      preference
+    );
 
     res.status(201).json({
       order,
@@ -128,11 +144,16 @@ export const createOrder = async (req: Request, res: Response): Promise<void> =>
     });
   } catch (err) {
     console.error("Erro ao criar pedido ou preferência de pagamento:", err);
-    res.status(500).json({ message: "Erro ao criar pedido ou preferência de pagamento" });
+    res
+      .status(500)
+      .json({ message: "Erro ao criar pedido ou preferência de pagamento" });
   }
 };
 
-export const updateOrderStatus = async (req: Request, res: Response): Promise<void> => {
+export const updateOrderStatus = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
   const { status } = req.body;
   const authReq = req as AuthenticatedRequest;
@@ -154,7 +175,9 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
   }
 
   if (userRole !== "admin") {
-    res.status(403).json({ message: "Access denied: only admins can change order status" });
+    res
+      .status(403)
+      .json({ message: "Access denied: only admins can change order status" });
     return;
   }
 
@@ -173,4 +196,3 @@ export const updateOrderStatus = async (req: Request, res: Response): Promise<vo
     res.status(500).json({ message: "Error updating order status" });
   }
 };
-
