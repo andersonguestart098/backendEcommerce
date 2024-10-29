@@ -18,8 +18,8 @@ export const createTransparentPayment = async (
     payment_method_id,
     installments,
     payer,
-    items, // Novo campo para os itens
-    external_reference, // Novo campo para a referência externa
+    items = [], // Define items como array vazio se estiver indefinido
+    external_reference,
   } = req.body;
 
   // Validação de campos essenciais
@@ -93,7 +93,7 @@ export const createTransparentPayment = async (
     statement_descriptor: "Seu E-commerce",
     notification_url:
       "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/mercado-pago/webhook",
-    external_reference, // Referência externa
+    external_reference,
   };
 
   try {
