@@ -1,14 +1,15 @@
-import { Request, Response, RequestHandler } from "express";
+import { Request, Response } from "express";
 const mercadopago = require("mercadopago");
 
 mercadopago.configure({
   access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 });
 
-export const createTransparentPayment: RequestHandler = async (
+export const createTransparentPayment = async (
   req: Request,
   res: Response
-) => {
+): Promise<void> => {
+  // Retorno como void para compatibilidade com RequestHandler
   console.log("Iniciando criação de pagamento...");
   console.log("Dados recebidos no backend:", req.body);
 
@@ -23,13 +24,40 @@ export const createTransparentPayment: RequestHandler = async (
     transactionAmount,
   } = req.body;
 
+  const transaction_amount = parseFloat(transactionAmount);
+  if (isNaN(transaction_amount) || transaction_amount <= 0) {
+    console.error("Erro: transactionAmount inválido ou não fornecido.");
+    res.status(400).json({
+      error:
+        "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
+    });
+    return;
+  }
+
+  if (!token || typeof token !== "string") {
+    console.error("Erro: token do cartão não foi fornecido ou é inválido.");
+    res.status(400).json({
+      error: "O campo 'token' é obrigatório e deve ser uma string válida.",
+    });
+    return;
+  }
+
+  const isCreditCard = paymentMethod === "Cartão de Crédito";
+  if (!paymentMethod || (typeof paymentMethod !== "string" && !isCreditCard)) {
+    console.error("Erro: Método de pagamento inválido ou não fornecido.");
+    res.status(400).json({
+      error:
+        "O campo 'paymentMethod' é obrigatório e deve ser um método de pagamento válido.",
+    });
+    return;
+  }
+
   const paymentData = {
-    transaction_amount: transactionAmount,
+    transaction_amount,
     token,
     description: "Compra de produtos",
-    installments: paymentMethod === "Cartão de Crédito" ? 12 : 1,
-    payment_method_id:
-      paymentMethod === "Cartão de Crédito" ? "visa" : paymentMethod,
+    installments: isCreditCard ? 12 : 1,
+    payment_method_id: isCreditCard ? "visa" : paymentMethod,
     payer: {
       email: email || "test_user@test.com",
       first_name: firstName || "Nome",
