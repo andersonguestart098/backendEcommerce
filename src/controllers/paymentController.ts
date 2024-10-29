@@ -18,12 +18,12 @@ export const createTransparentPayment = async (
     payment_method_id,
     installments,
     payer,
-    items, // Novo campo para os itens
+    items,
     external_reference,
-    device_id, // Identificador do dispositivo
+    device_id,
   } = req.body;
 
-  // Validação de campos essenciais
+  // Validação de campos essenciais com logs
   const transactionAmount = parseFloat(transaction_amount);
   if (isNaN(transactionAmount) || transactionAmount <= 0) {
     console.error("Erro: transaction_amount inválido ou não fornecido.");
@@ -70,13 +70,25 @@ export const createTransparentPayment = async (
     return;
   }
 
-  // Log dos requisitos solicitados
-  console.log("Device ID:", device_id);
-  console.log("Payer First Name:", payer.first_name);
-  console.log("Payer Last Name:", payer.last_name);
-  items.forEach((item: any, index: number) => {
-    console.log(`Item ${index + 1} - Category ID:`, item.category_id);
-  });
+  // Log dos requisitos detalhados
+  console.log("Device ID:", device_id || "Device ID não fornecido");
+  console.log("Payer Email:", payer.email);
+  console.log("Payer First Name:", payer.first_name || "First Name não fornecido");
+  console.log("Payer Last Name:", payer.last_name || "Last Name não fornecido");
+
+  // Log dos itens
+  if (items && items.length > 0) {
+    items.forEach((item: any, index: number) => {
+      console.log(`Item ${index + 1} - ID:`, item.id || "ID não fornecido");
+      console.log(`Item ${index + 1} - Title:`, item.title || "Title não fornecido");
+      console.log(`Item ${index + 1} - Quantity:`, item.quantity || "Quantidade não fornecida");
+      console.log(`Item ${index + 1} - Unit Price:`, item.unit_price || "Preço não fornecido");
+      console.log(`Item ${index + 1} - Description:`, item.description || "Descrição não fornecida");
+      console.log(`Item ${index + 1} - Category ID:`, item.category_id || "Category ID não fornecido");
+    });
+  } else {
+    console.error("Erro: Nenhum item foi enviado para o pagamento.");
+  }
 
   // Dados para a API do Mercado Pago
   const paymentData = {
