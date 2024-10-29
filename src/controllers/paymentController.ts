@@ -9,21 +9,20 @@ export const createTransparentPayment = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  // Retorno como void para compatibilidade com RequestHandler
   console.log("Iniciando criação de pagamento...");
   console.log("Dados recebidos no backend:", req.body);
 
   const {
-    products,
+    token,
+    transactionAmount,
     paymentMethod,
+    installments,
     email,
     firstName,
     lastName,
-    shippingCost,
-    token,
-    transactionAmount,
   } = req.body;
 
+  // Validação de campos essenciais
   const transaction_amount = parseFloat(transactionAmount);
   if (isNaN(transaction_amount) || transaction_amount <= 0) {
     console.error("Erro: transactionAmount inválido ou não fornecido.");
@@ -42,24 +41,42 @@ export const createTransparentPayment = async (
     return;
   }
 
-  const isCreditCard = paymentMethod === "Cartão de Crédito";
-  if (!paymentMethod || (typeof paymentMethod !== "string" && !isCreditCard)) {
+  if (!paymentMethod || typeof paymentMethod !== "string") {
     console.error("Erro: Método de pagamento inválido ou não fornecido.");
     res.status(400).json({
       error:
-        "O campo 'paymentMethod' é obrigatório e deve ser um método de pagamento válido.",
+        "O campo 'payment_method' é obrigatório e deve ser uma string válida.",
     });
     return;
   }
 
+  const installmentCount = Number(installments);
+  if (isNaN(installmentCount) || installmentCount <= 0) {
+    console.error("Erro: installments inválido ou não fornecido.");
+    res.status(400).json({
+      error:
+        "O campo 'installments' é obrigatório e deve ser um número válido.",
+    });
+    return;
+  }
+
+  if (!email || typeof email !== "string") {
+    console.error("Erro: email do comprador não foi fornecido ou é inválido.");
+    res.status(400).json({
+      error: "O campo 'email' é obrigatório e deve ser uma string válida.",
+    });
+    return;
+  }
+
+  // Dados para a API do Mercado Pago
   const paymentData = {
     transaction_amount,
     token,
     description: "Compra de produtos",
-    installments: isCreditCard ? 12 : 1,
-    payment_method_id: isCreditCard ? "visa" : paymentMethod,
+    installments: installmentCount,
+    payment_method_id: paymentMethod,
     payer: {
-      email: email || "test_user@test.com",
+      email,
       first_name: firstName || "Nome",
       last_name: lastName || "Sobrenome",
       identification: {
