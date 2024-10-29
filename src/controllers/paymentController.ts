@@ -7,7 +7,7 @@ mercadopago.configure({
 
 export const createTransparentPayment = async (req: Request, res: Response) => {
   console.log("Iniciando criação de pagamento...");
-  console.log("Dados recebidos:", req.body);
+  console.log("Dados recebidos no backend:", req.body);
 
   const {
     products,
@@ -38,28 +38,6 @@ export const createTransparentPayment = async (req: Request, res: Response) => {
     },
     statement_descriptor: "Seu E-commerce",
     notification_url: `${process.env.BACKEND_URL}/webhooks`,
-    additional_info: {
-      items: products.map((product: any) => ({
-        id: product.id,
-        title: product.name,
-        description: product.description || "Descrição do produto",
-        category_id: product.category_id || "outros",
-        quantity: product.quantity,
-        unit_price: product.price,
-      })),
-      payer: {
-        first_name: firstName,
-        last_name: lastName,
-        address: {
-          zip_code: "12345-678",
-          street_name: "Rua Exemplo",
-          street_number: 123,
-        },
-      },
-      shipments: {
-        receiver_address: "Rua Exemplo, 123, 1º andar, apt 101, 12345-678",
-      },
-    },
   };
 
   try {
