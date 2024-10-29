@@ -14,18 +14,16 @@ export const createTransparentPayment = async (
 
   const {
     token,
-    transactionAmount,
-    paymentMethod,
+    transaction_amount, // Corrigido para transaction_amount
+    payment_method_id,
     installments,
-    email,
-    firstName,
-    lastName,
+    payer,
   } = req.body;
 
   // Validação de campos essenciais
-  const transaction_amount = parseFloat(transactionAmount);
-  if (isNaN(transaction_amount) || transaction_amount <= 0) {
-    console.error("Erro: transactionAmount inválido ou não fornecido.");
+  const transactionAmount = parseFloat(transaction_amount);
+  if (isNaN(transactionAmount) || transactionAmount <= 0) {
+    console.error("Erro: transaction_amount inválido ou não fornecido.");
     res.status(400).json({
       error:
         "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
@@ -41,11 +39,11 @@ export const createTransparentPayment = async (
     return;
   }
 
-  if (!paymentMethod || typeof paymentMethod !== "string") {
+  if (!payment_method_id || typeof payment_method_id !== "string") {
     console.error("Erro: Método de pagamento inválido ou não fornecido.");
     res.status(400).json({
       error:
-        "O campo 'payment_method' é obrigatório e deve ser uma string válida.",
+        "O campo 'payment_method_id' é obrigatório e deve ser uma string válida.",
     });
     return;
   }
@@ -60,29 +58,25 @@ export const createTransparentPayment = async (
     return;
   }
 
-  if (!email || typeof email !== "string") {
+  if (!payer || !payer.email || typeof payer.email !== "string") {
     console.error("Erro: email do comprador não foi fornecido ou é inválido.");
     res.status(400).json({
-      error: "O campo 'email' é obrigatório e deve ser uma string válida.",
+      error:
+        "O campo 'payer.email' é obrigatório e deve ser uma string válida.",
     });
     return;
   }
 
   // Dados para a API do Mercado Pago
   const paymentData = {
-    transaction_amount,
+    transaction_amount: transactionAmount,
     token,
     description: "Compra de produtos",
     installments: installmentCount,
-    payment_method_id: paymentMethod,
+    payment_method_id,
     payer: {
-      email,
-      first_name: firstName || "Nome",
-      last_name: lastName || "Sobrenome",
-      identification: {
-        type: "CPF",
-        number: "12345678909",
-      },
+      email: payer.email,
+      identification: payer.identification,
     },
     statement_descriptor: "Seu E-commerce",
     notification_url: `${process.env.BACKEND_URL}/webhooks`,
