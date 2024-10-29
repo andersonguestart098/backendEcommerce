@@ -30,7 +30,7 @@ const corsOptions = {
   origin: [
     "http://localhost:3000",
     "http://localhost:3001",
-    "https://ecommerce-f06xk1f6x-andersonguestart098s-projects.vercel.app",
+    "https://ecommerce-kwhe21etq-andersonguestart098s-projects.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
