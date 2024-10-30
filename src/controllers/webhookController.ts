@@ -10,6 +10,7 @@ export const handleMercadoPagoWebhook = async (req: Request, res: Response): Pro
 
   const { id, type, action, data } = req.body;
 
+  // Verifique se o webhook está relacionado a um pagamento atualizado
   if (type === "payment" && action === "payment.updated" && data && data.id) {
     try {
       const paymentId = parseInt(data.id, 10);
@@ -21,23 +22,25 @@ export const handleMercadoPagoWebhook = async (req: Request, res: Response): Pro
         return;
       }
 
-      // Buscar o pagamento pelo ID para extrair informações
-      const payment = await mercadopago.payment.findById(paymentId);
-      console.log("Dados do pagamento:", payment.body);
+      // Buscar informações detalhadas do pagamento pelo ID
+      const paymentResponse = await mercadopago.payment.findById(paymentId);
+      const payment = paymentResponse.body;
+      console.log("Dados do pagamento:", payment);
 
-      const orderId = payment.body.external_reference;
-      const status = payment.body.status;
+      // Extrair o external_reference e status do pagamento
+      const orderId = payment.external_reference;
+      const status = payment.status;
 
-      // Verificação de ID nulo
       if (!orderId) {
         console.error("ID do pedido não encontrado (external_reference é nulo)");
-        res.sendStatus(400);
+        res.status(400).json({ message: "ID do pedido não encontrado no pagamento." });
         return;
       }
 
       // Mapear o status para um valor compatível com o Prisma (OrderStatus)
       const prismaStatus = status === "approved" ? "APPROVED" : status === "rejected" ? "REJECTED" : "PENDING";
 
+      // Atualizar o status do pedido no banco de dados
       await prisma.order.update({
         where: { id: orderId },
         data: { status: prismaStatus },
@@ -47,10 +50,10 @@ export const handleMercadoPagoWebhook = async (req: Request, res: Response): Pro
       res.sendStatus(200);
     } catch (error) {
       console.error("Erro ao processar webhook:", error);
-      res.sendStatus(500);
+      res.status(500).json({ message: "Erro ao processar webhook", error });
     }
   } else {
     console.error("Requisição de webhook inválida ou dados ausentes");
-    res.sendStatus(400);
+    res.status(400).json({ message: "Requisição inválida ou dados ausentes" });
   }
 };

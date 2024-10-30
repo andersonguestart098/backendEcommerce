@@ -37,7 +37,7 @@ export const createTransparentPayment = async (
   const paymentData = {
     transaction_amount: transactionAmount,
     token,
-    description: itemDescription, // Enviando apenas a descrição do item
+    description: itemDescription, // Descrição do item
     installments: Number(installments),
     payment_method_id,
     payer: {
@@ -47,12 +47,12 @@ export const createTransparentPayment = async (
       identification: payer.identification,
     },
     metadata: {
-      device_id: device_id || "default_device_id", // Valor padrão se não fornecido
+      device_id: device_id || "default_device_id",
     },
     statement_descriptor: "Seu E-commerce",
     notification_url:
       "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
-    external_reference,
+    external_reference: external_reference || "ID_DO_PEDIDO_AQUI", // Use um ID de pedido único aqui
   };
 
   console.log("Dados preparados para envio ao Mercado Pago:", JSON.stringify(paymentData, null, 2));
