@@ -10,6 +10,7 @@ export const createTransparentPayment: RequestHandler = async (
   res: Response
 ) => {
   console.log("Iniciando criação de pagamento...");
+
   const {
     token,
     transaction_amount,
@@ -22,7 +23,10 @@ export const createTransparentPayment: RequestHandler = async (
   } = req.body;
 
   const transactionAmount = parseFloat(transaction_amount);
+
+  // Log de validação do `transaction_amount`
   if (isNaN(transactionAmount) || transactionAmount <= 0) {
+    console.error("Erro: `transaction_amount` é inválido:", transaction_amount);
     res.status(400).json({
       error:
         "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
@@ -30,7 +34,17 @@ export const createTransparentPayment: RequestHandler = async (
     return;
   }
 
-  // Configuração dos dados do pagamento
+  // Log de validação do `payer`
+  if (!payer || !payer.email || !payer.identification) {
+    console.error("Erro: Dados de `payer` ausentes ou incompletos:", payer);
+    res.status(400).json({
+      error:
+        "Os dados de 'payer' estão incompletos. Verifique se 'email' e 'identification' estão presentes.",
+    });
+    return;
+  }
+
+  // Dados detalhados do pagamento
   const paymentData: any = {
     transaction_amount: transactionAmount,
     description: items[0]?.description || "Compra de produtos",
@@ -50,14 +64,17 @@ export const createTransparentPayment: RequestHandler = async (
     external_reference: userId,
   };
 
-  // Adiciona installments somente para pagamentos com cartão
-  if (payment_method_id === "card" && installments) {
-    paymentData.installments = installments;
-    paymentData.token = token; // Inclui o token apenas para cartões
+  // Adiciona `installments` e `token` apenas se for pagamento com cartão
+  if (payment_method_id === "card") {
+    paymentData.installments = installments || 1;
+    paymentData.token = token;
   }
+
+  console.log("Dados prontos para envio ao Mercado Pago:", paymentData);
 
   try {
     const response = await mercadopago.payment.create(paymentData);
+    console.log("Resposta do Mercado Pago:", response.body);
     res.status(200).json({
       message: "Pagamento criado",
       status: response.body.status,
