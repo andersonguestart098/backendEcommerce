@@ -10,6 +10,7 @@ export const createTransparentPayment = async (
   res: Response
 ): Promise<void> => {
   console.log("Iniciando criação de pagamento...");
+  console.log("Dados recebidos:", req.body); // Adiciona log para inspecionar os dados recebidos
 
   const {
     transaction_amount,
@@ -20,25 +21,21 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
-  const transactionAmount = parseFloat(transaction_amount);
-  if (isNaN(transactionAmount) || transactionAmount <= 0) {
-    res.status(400).json({
-      error:
-        "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
+  // Validação dos dados
+  if (!transaction_amount || !payment_method_id || !payer) {
+    console.error("Dados obrigatórios ausentes:", {
+      transaction_amount,
+      payment_method_id,
+      payer,
     });
-    return;
-  }
-
-  // Verifique os dados do pagador para garantir que todos os campos obrigatórios estão presentes
-  if (!payer || !payer.email || !payer.first_name || !payer.identification) {
     res
       .status(400)
-      .json({ error: "Dados de `payer` ausentes ou incompletos." });
+      .json({ error: "Dados obrigatórios ausentes ou incorretos." });
     return;
   }
 
   const paymentData = {
-    transaction_amount: transactionAmount,
+    transaction_amount,
     description: items[0]?.description || "Compra de produtos",
     payment_method_id,
     payer: {
@@ -53,7 +50,7 @@ export const createTransparentPayment = async (
     statement_descriptor: "Seu E-commerce",
     notification_url:
       "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
-    external_reference: userId, // Referência ao usuário ou ao pedido
+    external_reference: userId,
   };
 
   try {
