@@ -23,18 +23,16 @@ export const createTransparentPayment = async (
     device_id,
   } = req.body;
 
+  // Validação dos campos
   const transactionAmount = parseFloat(transaction_amount);
   if (isNaN(transactionAmount) || transactionAmount <= 0) {
-    console.error("Erro: transaction_amount inválido ou não fornecido.");
     res.status(400).json({
-      error:
-        "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
+      error: "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
     });
     return;
   }
 
   if (!token || typeof token !== "string") {
-    console.error("Erro: token do cartão não foi fornecido ou é inválido.");
     res.status(400).json({
       error: "O campo 'token' é obrigatório e deve ser uma string válida.",
     });
@@ -42,34 +40,28 @@ export const createTransparentPayment = async (
   }
 
   if (!payment_method_id || typeof payment_method_id !== "string") {
-    console.error("Erro: Método de pagamento inválido ou não fornecido.");
     res.status(400).json({
-      error:
-        "O campo 'payment_method_id' é obrigatório e deve ser uma string válida.",
+      error: "O campo 'payment_method_id' é obrigatório e deve ser uma string válida.",
     });
     return;
   }
 
   const installmentCount = Number(installments);
   if (isNaN(installmentCount) || installmentCount <= 0) {
-    console.error("Erro: installments inválido ou não fornecido.");
     res.status(400).json({
-      error:
-        "O campo 'installments' é obrigatório e deve ser um número válido.",
+      error: "O campo 'installments' é obrigatório e deve ser um número válido.",
     });
     return;
   }
 
   if (!payer || !payer.email || typeof payer.email !== "string") {
-    console.error("Erro: email do comprador não foi fornecido ou é inválido.");
     res.status(400).json({
-      error:
-        "O campo 'payer.email' é obrigatório e deve ser uma string válida.",
+      error: "O campo 'payer.email' é obrigatório e deve ser uma string válida.",
     });
     return;
   }
 
-  // Estrutura do objeto de pagamento para a API do Mercado Pago
+  // Ajustando o objeto `paymentData` para a API do Mercado Pago
   const paymentData = {
     transaction_amount: transactionAmount,
     token,
@@ -78,8 +70,8 @@ export const createTransparentPayment = async (
     payment_method_id,
     payer: {
       email: payer.email,
-      first_name: payer.first_name || "", // Nome do comprador
-      last_name: payer.last_name || "", // Sobrenome do comprador
+      first_name: payer.first_name || "",
+      last_name: payer.last_name || "",
       identification: payer.identification,
     },
     items: items.map((item: any) => ({
@@ -91,7 +83,7 @@ export const createTransparentPayment = async (
       category_id: item.category_id || "default",
     })),
     metadata: {
-      device_id: device_id, // Inserindo o device_id em metadata, conforme necessário
+      device_id: device_id, // Corrigindo para o formato esperado
     },
     statement_descriptor: "Seu E-commerce",
     notification_url:
