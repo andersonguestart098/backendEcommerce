@@ -31,21 +31,13 @@ export const createTransparentPayment = async (
     return;
   }
 
-  const processedItems = items.map((item: any) => ({
-    id: String(item.id || "default_id"),
-    title: item.title || "Produto sem título",
-    quantity: Number(item.quantity) || 1,
-    unit_price: Number(item.unit_price) || 1.0,
-    description: item.description || "Produto sem descrição",
-    category_id: item.category_id || "default"
-  }));
-  
-
+  // Simplifique o processamento de items, utilizando apenas a descrição do primeiro item
+  const itemDescription = items?.[0]?.description || "Compra de produtos";
 
   const paymentData = {
     transaction_amount: transactionAmount,
     token,
-    description: "Compra de produtos",
+    description: itemDescription, // Enviando apenas a descrição do item
     installments: Number(installments),
     payment_method_id,
     payer: {
@@ -54,7 +46,6 @@ export const createTransparentPayment = async (
       last_name: payer.last_name || "",
       identification: payer.identification,
     },
-    items: processedItems,
     metadata: {
       device_id: device_id || "default_device_id", // Valor padrão se não fornecido
     },
