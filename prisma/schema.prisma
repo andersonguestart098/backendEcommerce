@@ -68,7 +68,7 @@ model Order {
   products   OrderProduct[]  // Relacionamento com OrderProduct
   status     OrderStatus   @default(PENDING)
   totalPrice Float
-  shippingCost Float 
+  shippingCost Float?      @default(0) 
   createdAt  DateTime      @default(now())
   updatedAt  DateTime      @updatedAt
 }

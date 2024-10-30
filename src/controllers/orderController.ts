@@ -21,16 +21,20 @@ export const getAllOrders = async (
   const userRole = authReq.user.tipoUsuario;
 
   if (userRole !== "admin") {
-    res
-      .status(403)
-      .json({
-        message:
-          "Acesso negado: apenas administradores podem ver todos os pedidos",
-      });
+    res.status(403).json({
+      message:
+        "Acesso negado: apenas administradores podem ver todos os pedidos",
+    });
     return;
   }
 
   try {
+    // Atualiza pedidos onde `shippingCost` é null para 0
+    await prisma.order.updateMany({
+      where: { shippingCost: null },
+      data: { shippingCost: 0 },
+    });
+
     const orders = await prisma.order.findMany({
       include: {
         products: {
@@ -40,6 +44,7 @@ export const getAllOrders = async (
         },
       },
     });
+
     res.json(orders);
   } catch (err) {
     console.error("Erro ao buscar pedidos:", err);
@@ -103,7 +108,7 @@ export const createOrder = async (
       data: {
         userId,
         totalPrice,
-        shippingCost,
+        shippingCost: shippingCost || 0, // Garante que o shippingCost seja 0 se estiver ausente
         products: {
           create: products.map((product: any) => ({
             productId: product.id,
@@ -128,19 +133,18 @@ export const createOrder = async (
         failure: "https://seu-front-end.com/order-failure",
         pending: "https://seu-front-end.com/order-pending",
       },
-      auto_return: "approved" as const, // Certificando o valor como compatível
+      auto_return: "approved" as const,
       statement_descriptor: "Seu E-commerce",
       external_reference: order.id.toString(),
     };
 
-    // Criação da preferência de pagamento no Mercado Pago
     const mercadoPagoResponse = await mercadopago.preferences.create(
       preference
     );
 
     res.status(201).json({
       order,
-      init_point: mercadoPagoResponse.body.init_point, // URL de checkout do Mercado Pago
+      init_point: mercadoPagoResponse.body.init_point,
     });
   } catch (err) {
     console.error("Erro ao criar pedido ou preferência de pagamento:", err);
@@ -150,6 +154,7 @@ export const createOrder = async (
   }
 };
 
+// Função para atualizar o status do pedido
 export const updateOrderStatus = async (
   req: Request,
   res: Response
@@ -187,8 +192,7 @@ export const updateOrderStatus = async (
       data: { status },
     });
 
-    // Emit the update event
-    emitOrderStatusUpdate(order.id, status, order.userId); // Ensure emit function has access to WebSocket logic
+    emitOrderStatusUpdate(order.id, status, order.userId);
 
     res.json({ message: "Status updated successfully", order });
   } catch (err) {
