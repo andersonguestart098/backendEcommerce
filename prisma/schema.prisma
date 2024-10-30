@@ -87,8 +87,22 @@ model User {
   name         String
   email        String   @unique
   password     String
-  tipoUsuario  String   // Campo para diferenciar tipos de usuário (admin, cliente, etc.)
+  tipoUsuario  String   // Diferencia tipos de usuário (admin, cliente, etc.)
+  cpf          String?  // Documento de identificação (opcional para cadastro inicial)
+  phone        String?  // Telefone para contato
+  address      Address? // Relacionamento com endereço (pode ser um modelo separado)
   orders       Order[]  // Relacionamento com pedidos
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model Address {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  street      String
+  city        String
+  state       String
+  postalCode  String
+  country     String
+  userId      String   @unique // Relaciona o endereço ao usuário
+  user        User     @relation(fields: [userId], references: [id])
 }
