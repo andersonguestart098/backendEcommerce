@@ -9,7 +9,7 @@ export const getAllUsers = async (
   res: Response
 ): Promise<void> => {
   try {
-    const users = await prisma.user.findMany(); // Usando o Prisma para buscar todos os usuários
+    const users = await prisma.user.findMany();
     res.json(users);
   } catch (err) {
     res.status(500).json({ message: "Erro ao buscar usuários" });
@@ -24,6 +24,7 @@ export const getUserById = async (
   try {
     const user = await prisma.user.findUnique({
       where: { id },
+      include: { address: true }, // Inclui o endereço ao buscar o usuário
     });
     if (!user) {
       res.status(404).json({ message: "Usuário não encontrado" });
@@ -39,14 +40,19 @@ export const createUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { name, email, password, tipoUsuario } = req.body; // Incluindo tipoUsuario
+  const { name, email, password, tipoUsuario, cpf, phone, address } = req.body;
   try {
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password,
-        tipoUsuario, // Certifique-se de fornecer tipoUsuario
+        tipoUsuario,
+        cpf,
+        phone,
+        address: {
+          create: address, // Cria o endereço associado ao usuário
+        },
       },
     });
     res.status(201).json(newUser);
@@ -55,12 +61,12 @@ export const createUser = async (
   }
 };
 
-// Função de registro de usuário com bcrypt
+// Função de registro de usuário com bcrypt e novos campos
 export const registerUser = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { name, email, password, tipoUsuario } = req.body; // Incluindo tipoUsuario
+  const { name, email, password, tipoUsuario, cpf, phone, address } = req.body;
 
   try {
     // Verifica se o usuário já existe
@@ -76,18 +82,24 @@ export const registerUser = async (
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
 
-    // Cria um novo usuário com a senha hash
+    // Cria um novo usuário com a senha hash e novos campos
     const newUser = await prisma.user.create({
       data: {
         name,
         email,
         password: hashedPassword,
-        tipoUsuario, // Incluindo tipoUsuario
+        tipoUsuario,
+        cpf,
+        phone,
+        address: {
+          create: address, // Cria o endereço associado ao usuário
+        },
       },
     });
 
     res.status(201).json(newUser);
   } catch (err) {
+    console.error("Erro ao registrar usuário:", err);
     res.status(500).json({ message: "Erro no servidor ao registrar usuário" });
   }
 };
