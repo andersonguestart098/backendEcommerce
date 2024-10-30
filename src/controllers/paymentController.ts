@@ -47,22 +47,12 @@ export const createTransparentPayment = async (
     payment_method_id,
     payer: {
       email: payer.email,
-      first_name,
-      last_name,
-      identification: {
-        type: "CPF",
-        number: payer.cpf,
-      },
-      address: {
-        street_name: payer.address.street,
-        zip_code: payer.address.postalCode,
-        city: payer.address.city,
-        state: payer.address.state,
-        country: payer.address.country,
-      },
+      first_name: payer.first_name,
+      last_name: payer.last_name || "",
+      identification: payer.identification,
     },
     metadata: {
-      device_id,
+      device_id: device_id,
     },
     statement_descriptor: "Seu E-commerce",
     notification_url:
@@ -70,9 +60,11 @@ export const createTransparentPayment = async (
     external_reference: userId,
   };
 
+  console.log("Dados prontos para envio ao Mercado Pago:", paymentData);
+
   try {
     const response = await mercadopago.payment.create(paymentData);
-    console.log("Pagamento criado com sucesso:", response.body);
+    console.log("Resposta do Mercado Pago:", response.body);
     res.status(200).json({
       message: "Pagamento criado",
       status: response.body.status,
@@ -81,9 +73,11 @@ export const createTransparentPayment = async (
     });
   } catch (error: any) {
     console.error("Erro ao criar pagamento:", error.response?.data || error);
-    res.status(500).json({
-      message: "Erro ao criar pagamento",
-      error: error.response?.data,
-    });
+    res
+      .status(500)
+      .json({
+        message: "Erro ao criar pagamento",
+        error: error.response?.data,
+      });
   }
 };
