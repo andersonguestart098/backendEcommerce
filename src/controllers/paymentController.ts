@@ -31,6 +31,15 @@ export const createTransparentPayment = async (
     return;
   }
 
+  const processedItems = items.map((item: any) => ({
+    id: String(item.id || "default_id"), // Garante que `id` seja uma string válida
+    title: item.title || "Produto sem título", // Define um título padrão se não houver
+    quantity: Number(item.quantity) || 1, // Garante que a quantidade seja um número válido
+    unit_price: Number(item.unit_price) || 1.0, // Define um valor padrão para `unit_price`
+    description: item.description || "Produto sem descrição",
+    category_id: item.category_id || "default"
+  }));
+
   const paymentData = {
     transaction_amount: transactionAmount,
     token,
@@ -43,14 +52,7 @@ export const createTransparentPayment = async (
       last_name: payer.last_name || "",
       identification: payer.identification,
     },
-    items: items.map((item: any) => ({
-      id: String(item.id),
-      title: item.title,
-      quantity: Number(item.quantity),
-      unit_price: Number(item.unit_price),
-      description: item.description || "Produto sem descrição",
-      category_id: item.category_id || "default",
-    })),
+    items: processedItems,
     metadata: {
       device_id: device_id || "default_device_id", // Define um valor padrão para `device_id` se for nulo
     },
