@@ -5,23 +5,36 @@ mercadopago.configure({
   access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 });
 
-export const createTransparentPayment = async (
+export const createTransparentPayment: RequestHandler = async (
   req: Request,
   res: Response
-): Promise<void> => {
+) => {
   console.log("Iniciando criação de pagamento...");
 
   const {
+    token,
+    transaction_amount,
+    payment_method_id,
+    installments,
+    payer,
+    items,
+    device_id,
+    userId,
+  } = req.body;
+
+  console.log("Dados recebidos no request:", {
     transaction_amount,
     payment_method_id,
     payer,
     items,
+    device_id,
     userId,
-    device_id = "default_device_id",
-  } = req.body;
+  });
 
   const transactionAmount = parseFloat(transaction_amount);
+
   if (isNaN(transactionAmount) || transactionAmount <= 0) {
+    console.error("Erro: `transaction_amount` é inválido:", transaction_amount);
     res.status(400).json({
       error:
         "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
@@ -29,30 +42,27 @@ export const createTransparentPayment = async (
     return;
   }
 
-  // Verificação e adaptação dos dados de `payer`
-  if (!payer || !payer.email || !payer.cpf || !payer.name || !payer.address) {
-    res
-      .status(400)
-      .json({ error: "Dados de `payer` ausentes ou incompletos." });
+  if (!payer || !payer.email || !payer.identification) {
+    console.error("Erro: Dados de `payer` ausentes ou incompletos:", payer);
+    res.status(400).json({
+      error:
+        "Os dados de 'payer' estão incompletos. Verifique se 'email' e 'identification' estão presentes.",
+    });
     return;
   }
 
-  // Extração de `first_name` e `last_name` a partir do campo `name`
-  const [first_name, ...lastNameParts] = payer.name.split(" ");
-  const last_name = lastNameParts.join(" ") || "";
-
-  const paymentData = {
+  const paymentData: any = {
     transaction_amount: transactionAmount,
     description: items[0]?.description || "Compra de produtos",
     payment_method_id,
     payer: {
       email: payer.email,
-      first_name: payer.first_name,
+      first_name: payer.first_name || "",
       last_name: payer.last_name || "",
       identification: payer.identification,
     },
     metadata: {
-      device_id: device_id,
+      device_id: device_id || "default_device_id",
     },
     statement_descriptor: "Seu E-commerce",
     notification_url:
@@ -73,11 +83,9 @@ export const createTransparentPayment = async (
     });
   } catch (error: any) {
     console.error("Erro ao criar pagamento:", error.response?.data || error);
-    res
-      .status(500)
-      .json({
-        message: "Erro ao criar pagamento",
-        error: error.response?.data,
-      });
+    res.status(500).json({
+      message: "Erro ao criar pagamento",
+      error: error.response?.data,
+    });
   }
 };
