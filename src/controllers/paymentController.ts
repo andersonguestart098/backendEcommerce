@@ -1,14 +1,15 @@
-import { Request, Response } from "express";
+import { Request, Response, RequestHandler } from "express";
 const mercadopago = require("mercadopago");
 
 mercadopago.configure({
   access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 });
 
-export const createTransparentPayment = async (
+// Define a função como um RequestHandler do Express
+export const createTransparentPayment: RequestHandler = async (
   req: Request,
   res: Response
-): Promise<void> => {
+) => {
   console.log("Iniciando criação de pagamento...");
   console.log("Dados recebidos no backend:", req.body);
 
@@ -19,64 +20,90 @@ export const createTransparentPayment = async (
     installments,
     payer,
     items,
-    external_reference,
     device_id,
+    userId,
   } = req.body;
 
-  const transactionAmount = parseFloat(transaction_amount);
-  if (isNaN(transactionAmount) || transactionAmount <= 0) {
-    res.status(400).json({
-      error: "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
+  // Log detalhado para verificar os valores dos itens
+  items.forEach((item: any, index: number) => {
+    console.log(
+      `Item ${index} - productId: ${item.productId}, quantity: ${item.quantity}`
+    );
+  });
+
+  // Verificação adicional para garantir que todos os `productId` e `quantity` estão definidos
+  if (!items || !items.every((item: any) => item.productId && item.quantity)) {
+    console.error(
+      "Erro: Um ou mais itens têm `productId` ou `quantity` inválidos."
+    );
+    await res.status(400).json({
+      error: "Cada item deve conter 'productId' e 'quantity' válidos.",
     });
     return;
   }
 
-  // Simplifique o processamento de items, utilizando apenas a descrição do primeiro item
-  const itemDescription = items?.[0]?.description || "Compra de produtos";
-
-  const paymentData = {
-    transaction_amount: transactionAmount,
-    token,
-    description: itemDescription, // Descrição do item
-    installments: Number(installments),
-    payment_method_id,
-    payer: {
-      email: payer.email,
-      first_name: payer.first_name || "",
-      last_name: payer.last_name || "",
-      identification: payer.identification,
-    },
-    metadata: {
-      device_id: device_id || "default_device_id",
-    },
-    statement_descriptor: "Seu E-commerce",
-    notification_url:
-      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
-    external_reference: external_reference || "ID_DO_PEDIDO_AQUI", // Use um ID de pedido único aqui
-  };
-
-  console.log("Dados preparados para envio ao Mercado Pago:", JSON.stringify(paymentData, null, 2));
+  const transactionAmount = parseFloat(transaction_amount);
+  if (isNaN(transactionAmount) || transactionAmount <= 0) {
+    await res.status(400).json({
+      error:
+        "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
+    });
+    return;
+  }
 
   try {
+    // Dados de pagamento para o Mercado Pago
+    const paymentData = {
+      transaction_amount: transactionAmount,
+      token,
+      description: items[0]?.description || "Compra de produtos",
+      installments: Number(installments),
+      payment_method_id,
+      payer: {
+        email: payer.email,
+        first_name: payer.first_name || "",
+        last_name: payer.last_name || "",
+        identification: payer.identification,
+      },
+      metadata: {
+        device_id: device_id || "default_device_id",
+      },
+      statement_descriptor: "Seu E-commerce",
+      notification_url:
+        "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
+      external_reference: userId,
+    };
+
+    console.log(
+      "Dados preparados para envio ao Mercado Pago:",
+      JSON.stringify(paymentData, null, 2)
+    );
+
     const response = await mercadopago.payment.create(paymentData);
-    console.log("Resposta do Mercado Pago:", JSON.stringify(response.body, null, 2));
+    console.log(
+      "Resposta do Mercado Pago:",
+      JSON.stringify(response.body, null, 2)
+    );
 
     if (response.body.status === "approved") {
-      res.status(200).json({
+      await res.status(200).json({
         message: "Pagamento aprovado",
         status: response.body.status,
         status_detail: response.body.status_detail,
         id: response.body.id,
       });
     } else {
-      res.status(200).json({
+      await res.status(200).json({
         message: "Pagamento pendente ou recusado",
         status: response.body.status,
         status_detail: response.body.status_detail,
       });
     }
   } catch (error: any) {
-    console.error("Erro ao criar pagamento:", error.response ? error.response.data : error);
-    res.status(500).json({ message: "Erro ao criar pagamento", error });
+    console.error(
+      "Erro ao criar pagamento:",
+      error.response ? error.response.data : error
+    );
+    await res.status(500).json({ message: "Erro ao criar pagamento", error });
   }
 };
