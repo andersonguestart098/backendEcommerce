@@ -50,9 +50,10 @@ export const createTransparentPayment: RequestHandler = async (
     external_reference: userId,
   };
 
-  // Só adiciona `installments` se for um pagamento com cartão
-  if (payment_method_id === "card") {
-    paymentData.installments = installments || 1;
+  // Adiciona installments somente para pagamentos com cartão
+  if (payment_method_id === "card" && installments) {
+    paymentData.installments = installments;
+    paymentData.token = token; // Inclui o token apenas para cartões
   }
 
   try {
