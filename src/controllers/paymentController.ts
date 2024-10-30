@@ -24,6 +24,11 @@ export const createTransparentPayment: RequestHandler = async (
     userId,
   } = req.body;
 
+  console.log("ID do usuário recebido:", userId);
+  items.forEach((item: any) => {
+    console.log(`Produto: ${item.productId}, Quantidade: ${item.quantity}`);
+  });
+
   // Log detalhado para verificar os valores dos itens
   items.forEach((item: any, index: number) => {
     console.log(
