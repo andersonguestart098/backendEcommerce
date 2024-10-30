@@ -23,9 +23,10 @@ export const createTransparentPayment = async (
     device_id,
   } = req.body;
 
-  // Validação dos campos
+  // Validação dos campos com log
   const transactionAmount = parseFloat(transaction_amount);
   if (isNaN(transactionAmount) || transactionAmount <= 0) {
+    console.error("Erro: transaction_amount inválido ou não fornecido.");
     res.status(400).json({
       error: "O campo 'transaction_amount' é obrigatório e deve ser um número válido.",
     });
@@ -33,6 +34,7 @@ export const createTransparentPayment = async (
   }
 
   if (!token || typeof token !== "string") {
+    console.error("Erro: token do cartão não foi fornecido ou é inválido.");
     res.status(400).json({
       error: "O campo 'token' é obrigatório e deve ser uma string válida.",
     });
@@ -40,6 +42,7 @@ export const createTransparentPayment = async (
   }
 
   if (!payment_method_id || typeof payment_method_id !== "string") {
+    console.error("Erro: Método de pagamento inválido ou não fornecido.");
     res.status(400).json({
       error: "O campo 'payment_method_id' é obrigatório e deve ser uma string válida.",
     });
@@ -48,6 +51,7 @@ export const createTransparentPayment = async (
 
   const installmentCount = Number(installments);
   if (isNaN(installmentCount) || installmentCount <= 0) {
+    console.error("Erro: installments inválido ou não fornecido.");
     res.status(400).json({
       error: "O campo 'installments' é obrigatório e deve ser um número válido.",
     });
@@ -55,13 +59,14 @@ export const createTransparentPayment = async (
   }
 
   if (!payer || !payer.email || typeof payer.email !== "string") {
+    console.error("Erro: email do comprador não foi fornecido ou é inválido.");
     res.status(400).json({
       error: "O campo 'payer.email' é obrigatório e deve ser uma string válida.",
     });
     return;
   }
 
-  // Ajustando o objeto `paymentData` para a API do Mercado Pago
+  // Log dos dados do objeto `paymentData`
   const paymentData = {
     transaction_amount: transactionAmount,
     token,
@@ -91,9 +96,11 @@ export const createTransparentPayment = async (
     external_reference,
   };
 
+  console.log("Dados preparados para envio ao Mercado Pago:", JSON.stringify(paymentData, null, 2));
+
   try {
     const response = await mercadopago.payment.create(paymentData);
-    console.log("Resposta do Mercado Pago:", response.body);
+    console.log("Resposta do Mercado Pago:", JSON.stringify(response.body, null, 2));
 
     if (response.body.status === "approved") {
       res.status(200).json({
@@ -103,6 +110,7 @@ export const createTransparentPayment = async (
         id: response.body.id,
       });
     } else {
+      console.warn("Pagamento pendente ou recusado:", response.body.status_detail);
       res.status(200).json({
         message: "Pagamento pendente ou recusado",
         status: response.body.status,
