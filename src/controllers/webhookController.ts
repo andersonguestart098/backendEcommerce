@@ -38,7 +38,6 @@ export const handleMercadoPagoWebhook = async (req: Request, res: Response): Pro
       // Mapear o status para um valor compatível com o Prisma (OrderStatus)
       const prismaStatus = status === "approved" ? "APPROVED" : status === "rejected" ? "REJECTED" : "PENDING";
 
-      // Atualizar o pedido no banco de dados
       await prisma.order.update({
         where: { id: orderId },
         data: { status: prismaStatus },
