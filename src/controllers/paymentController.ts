@@ -23,7 +23,6 @@ export const createTransparentPayment = async (
     device_id,
   } = req.body;
 
-  // Validação de campos essenciais com logs
   const transactionAmount = parseFloat(transaction_amount);
   if (isNaN(transactionAmount) || transactionAmount <= 0) {
     console.error("Erro: transaction_amount inválido ou não fornecido.");
@@ -70,27 +69,7 @@ export const createTransparentPayment = async (
     return;
   }
 
-  // Log dos requisitos detalhados
-  console.log("Device ID:", device_id || "Device ID não fornecido");
-  console.log("Payer Email:", payer.email);
-  console.log("Payer First Name:", payer.first_name || "First Name não fornecido");
-  console.log("Payer Last Name:", payer.last_name || "Last Name não fornecido");
-
-  // Log dos itens
-  if (items && items.length > 0) {
-    items.forEach((item: any, index: number) => {
-      console.log(`Item ${index + 1} - ID:`, item.id || "ID não fornecido");
-      console.log(`Item ${index + 1} - Title:`, item.title || "Title não fornecido");
-      console.log(`Item ${index + 1} - Quantity:`, item.quantity || "Quantidade não fornecida");
-      console.log(`Item ${index + 1} - Unit Price:`, item.unit_price || "Preço não fornecido");
-      console.log(`Item ${index + 1} - Description:`, item.description || "Descrição não fornecida");
-      console.log(`Item ${index + 1} - Category ID:`, item.category_id || "Category ID não fornecido");
-    });
-  } else {
-    console.error("Erro: Nenhum item foi enviado para o pagamento.");
-  }
-
-  // Dados para a API do Mercado Pago
+  // Estrutura do objeto de pagamento para a API do Mercado Pago
   const paymentData = {
     transaction_amount: transactionAmount,
     token,
@@ -111,10 +90,12 @@ export const createTransparentPayment = async (
       description: item.description,
       category_id: item.category_id || "default",
     })),
-    device_id,
+    metadata: {
+      device_id: device_id, // Inserindo o device_id em metadata, conforme necessário
+    },
     statement_descriptor: "Seu E-commerce",
     notification_url:
-      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/mercado-pago/webhook",
+      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
     external_reference,
   };
 
