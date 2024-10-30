@@ -38,7 +38,8 @@ export const createTransparentPayment = async (
     unit_price: Number(item.unit_price) || 1.0,
     description: item.description || "Produto sem descrição",
     category_id: item.category_id || "default"
-}));
+  }));
+  
 
 
   const paymentData = {
