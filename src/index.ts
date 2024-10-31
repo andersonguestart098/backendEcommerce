@@ -39,10 +39,9 @@ const corsOptions = {
   credentials: true,
 };
 
-// Middlewares
-app.use(express.json()); // 1. Interpreta o JSON da requisição primeiro
-app.use(cors(corsOptions)); // 2. Aplica o CORS a todas as rotas e origens permitidas
-app.options("*", cors(corsOptions)); // 3. Responde a todas as requisições OPTIONS automaticamente
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions));
+app.use(express.json());
 
 // Rotas principais
 app.get("/", (req, res) => {
@@ -58,7 +57,7 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 app.use("/api", webhookRoutes);
 app.use("/webhooks", webhookRoutes);
-app.use("/payment", cors(corsOptions), paymentRoutes); // Aplica CORS específico para a rota de pagamento
+app.use("/payment", paymentRoutes); // Aplica CORS específico para a rota de pagamento
 
 // Rotas de feedback de pagamento
 app.get("/sucesso", (req, res) => {
