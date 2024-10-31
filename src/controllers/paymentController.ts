@@ -10,19 +10,19 @@ export const createTransparentPayment = async (
   res: Response
 ): Promise<void> => {
   console.log("Iniciando criação de pagamento...");
-  console.log("Dados recebidos:", req.body); // Log dos dados recebidos
+  console.log("Dados recebidos:", req.body);
 
   const {
     transaction_amount,
     payment_method_id,
     payer,
+    installments = 1, // Valor padrão de 1 parcela, caso não seja enviado
+    token,
     items,
     userId,
     device_id = "default_device_id",
-    token,
   } = req.body;
 
-  // Validação dos dados
   if (!transaction_amount || !payment_method_id || !payer || !token) {
     console.error("Dados obrigatórios ausentes:", {
       transaction_amount,
@@ -36,7 +36,6 @@ export const createTransparentPayment = async (
     return;
   }
 
-  // Descrição do item
   const description =
     items && items.length > 0 ? items[0].description : "Compra de produtos";
 
@@ -45,6 +44,7 @@ export const createTransparentPayment = async (
     description,
     payment_method_id,
     token,
+    installments,
     payer: {
       email: payer.email,
       first_name: payer.first_name,
