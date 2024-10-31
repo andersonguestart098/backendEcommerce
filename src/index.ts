@@ -32,10 +32,12 @@ const io = new SocketIOServer(server, {
   cors: {
     origin: [
       "http://localhost:3000",
-      "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
-      "https://ecommerce-7o0oh2qpf-andersonguestart098s-projects.vercel.app",
+      "http://localhost:3001",
+      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
+      "https://ecommerce-qgw68k4ji-andersonguestart098s-projects.vercel.app",
     ],
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST"],
+    credentials: true, // Garantir que cookies e headers de autenticação sejam aceitos
   },
   path: "/socket.io",
 });
@@ -58,13 +60,17 @@ io.on("connection", (socket) => {
 const corsOptions = {
   origin: [
     "http://localhost:3000",
-    "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
-    "https://ecommerce-7o0oh2qpf-andersonguestart098s-projects.vercel.app",
+    "http://localhost:3001",
+    "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
+    "https://ecommerce-qgw68k4ji-andersonguestart098s-projects.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
+  allowedHeaders: ["Content-Type", "Authorization"],
   credentials: true,
 };
+
+app.use(cors(corsOptions)); // Aplicar CORS antes das rotas
+app.use(express.json());
 
 app.use(cors(corsOptions));
 app.use(express.json());
