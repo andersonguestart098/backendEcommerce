@@ -34,9 +34,13 @@ export const createTransparentPayment = async (
     return;
   }
 
+  // Verifica se items existe e se contém pelo menos um item, caso contrário, define uma descrição padrão
+  const description =
+    items && items.length > 0 ? items[0].description : "Compra de produtos";
+
   const paymentData = {
     transaction_amount,
-    description: items[0]?.description || "Compra de produtos",
+    description,
     payment_method_id,
     payer: {
       email: payer.email,
