@@ -1,9 +1,11 @@
+// index.ts ou app.ts
 import express from "express";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 
+import { initializeSocket } from "./utils/events"; // Importe a função para inicializar o socket
 import productRoutes from "./routes/productRoutes";
 import bannerRoutes from "./routes/bannerRoutes";
 import userRoutes from "./routes/userRoutes";
@@ -38,6 +40,8 @@ const io = new SocketIOServer(server, {
   path: "/socket.io",
 });
 
+initializeSocket(io); // Passe o Socket.IO para a função de inicialização
+
 io.on("connection", (socket) => {
   console.log("User connected");
 
@@ -50,7 +54,7 @@ io.on("connection", (socket) => {
   });
 });
 
-// Configurações de CORS robusta
+// Configurações de CORS robustas
 const corsOptions = {
   origin: [
     "http://localhost:3000",

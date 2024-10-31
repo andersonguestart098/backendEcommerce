@@ -1,6 +1,7 @@
+// orderController.ts
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { emitOrderStatusUpdate } from "..";
+import { emitOrderStatusUpdate } from "../utils/events"; // Ajuste o caminho para apontar para events.ts
 const mercadopago = require("mercadopago");
 
 const prisma = new PrismaClient();
