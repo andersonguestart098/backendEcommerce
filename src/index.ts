@@ -30,10 +30,9 @@ const corsOptions = {
   origin: [
     "http://localhost:3000",
     "http://localhost:3001",
-    "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
-    "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/payment/process_payment",
     "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
     "https://ecommerce-7o0oh2qpf-andersonguestart098s-projects.vercel.app",
+    "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
