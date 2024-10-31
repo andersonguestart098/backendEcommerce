@@ -12,15 +12,31 @@ export const createTransparentPayment = async (
   const { transaction_amount, payment_method_id, payer, description } =
     req.body;
 
+  // Confere se os parâmetros obrigatórios estão presentes
+  if (!transaction_amount || !payment_method_id || !payer || !payer.email) {
+    console.error("Dados obrigatórios ausentes:", {
+      transaction_amount,
+      payment_method_id,
+      payer,
+    });
+    res
+      .status(400)
+      .json({ error: "Dados obrigatórios ausentes ou incorretos." });
+    return;
+  }
+
   const paymentData: any = {
     transaction_amount,
     payment_method_id,
     description,
     payer: {
       email: payer.email,
-      first_name: payer.first_name,
-      last_name: payer.last_name,
-      identification: payer.identification,
+      first_name: payer.first_name || "Nome",
+      last_name: payer.last_name || "Sobrenome",
+      identification: payer.identification || {
+        type: "CPF",
+        number: "12345678909",
+      },
     },
     notification_url:
       "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
