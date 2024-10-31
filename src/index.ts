@@ -67,7 +67,7 @@ app.use(express.json());
 
 // Rotas principais
 app.get("/", (req, res) => {
-  res.send("Servidor funcionando.");
+  res.send("Servidor funcionando!");
 });
 
 // Rotas de pagamento e outras rotas
