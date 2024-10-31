@@ -32,7 +32,7 @@ const corsOptions = {
     "http://localhost:3001",
     "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
     "https://ecommerce-mkjgfjm4w-andersonguestart098s-projects.vercel.app",
-    'https://ecommerce-9sq2zkod6-andersonguestart098s-projects.vercel.app'
+    "https://ecommerce-7o0oh2qpf-andersonguestart098s-projects.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
