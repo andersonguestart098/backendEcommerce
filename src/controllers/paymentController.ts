@@ -1,23 +1,41 @@
 import { Request, Response } from "express";
+import dotenv from "dotenv";
+import { PrismaClient } from "@prisma/client";
+
+// Inicializa o Prisma Client
+const prisma = new PrismaClient();
+dotenv.config();
+
+// Utiliza require para evitar problemas de typings do Mercado Pago
 const mercadopago = require("mercadopago");
 
 mercadopago.configure({
-  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN,
+  access_token: process.env.MERCADO_PAGO_ACCESS_TOKEN || "",
 });
 
 export const createTransparentPayment = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  const { transaction_amount, payment_method_id, payer, description } =
-    req.body;
+  console.log("Iniciando criação de pagamento...");
+  console.log("Dados recebidos:", req.body);
 
-  // Confere se os parâmetros obrigatórios estão presentes
-  if (!transaction_amount || !payment_method_id || !payer || !payer.email) {
+  const {
+    transaction_amount,
+    payment_method_id,
+    installments = 1,
+    token,
+    items,
+    userId,
+    device_id = "default_device_id",
+  } = req.body;
+
+  if (!transaction_amount || !payment_method_id || !token || !userId) {
     console.error("Dados obrigatórios ausentes:", {
       transaction_amount,
       payment_method_id,
-      payer,
+      token,
+      userId,
     });
     res
       .status(400)
@@ -25,38 +43,56 @@ export const createTransparentPayment = async (
     return;
   }
 
-  const paymentData: any = {
-    transaction_amount,
-    payment_method_id,
-    description,
-    payer: {
-      email: payer.email,
-      first_name: payer.first_name || "Nome",
-      last_name: payer.last_name || "Sobrenome",
-      identification: payer.identification || {
-        type: "CPF",
-        number: "12345678909",
-      },
-    },
-    notification_url:
-      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
-  };
-
   try {
-    const response = await mercadopago.payment.create(paymentData);
-    if (payment_method_id === "pix") {
-      const qrCode =
-        response.body.point_of_interaction.transaction_data.qr_code;
-      const qrCodeUrl =
-        response.body.point_of_interaction.transaction_data.qr_code_url;
-      res.status(200).json({
-        message: "Pix gerado",
-        qr_code: qrCode,
-        qr_code_url: qrCodeUrl,
-      });
-    } else {
-      res.status(200).json({ message: "Pagamento criado", ...response.body });
+    // Busca o usuário no banco de dados
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { address: true },
+    });
+
+    if (!user) {
+      res.status(404).json({ error: "Usuário não encontrado" });
+      return;
     }
+
+    // Prepara o objeto payer com informações do usuário
+    const payer = {
+      email: user.email,
+      first_name: user.name.split(" ")[0],
+      last_name: user.name.split(" ").slice(1).join(" "),
+      identification: {
+        type: "CPF",
+        number: user.cpf || "00000000000", // Usa um valor padrão se o CPF for opcional e não estiver preenchido
+      },
+    };
+
+    const description =
+      items && items.length > 0 ? items[0].description : "Compra de produtos";
+
+    const paymentData = {
+      transaction_amount,
+      description,
+      payment_method_id,
+      token,
+      installments,
+      payer,
+      metadata: {
+        device_id: device_id,
+      },
+      statement_descriptor: "Seu E-commerce",
+      notification_url:
+        "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
+      external_reference: userId,
+    };
+
+    const response = await mercadopago.payment.create(paymentData);
+    console.log("Pagamento criado com sucesso:", response.body);
+    res.status(200).json({
+      message: "Pagamento criado",
+      status: response.body.status,
+      status_detail: response.body.status_detail,
+      id: response.body.id,
+    });
   } catch (error: any) {
     console.error("Erro ao criar pagamento:", error.response?.data || error);
     res.status(500).json({
