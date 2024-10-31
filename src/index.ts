@@ -1,6 +1,6 @@
 import express from "express";
 import http from "http";
-import { Server } from "socket.io";
+import { Server as SocketIOServer } from "socket.io";
 import cors from "cors";
 import dotenv from "dotenv";
 
@@ -25,6 +25,31 @@ mercadopago.configurations.setAccessToken(
   process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
 );
 
+// Inicialize o Socket.IO antes de qualquer middleware ou rota
+const io = new SocketIOServer(server, {
+  cors: {
+    origin: [
+      "http://localhost:3000",
+      "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
+      "https://ecommerce-7o0oh2qpf-andersonguestart098s-projects.vercel.app",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  },
+  path: "/socket.io",
+});
+
+io.on("connection", (socket) => {
+  console.log("User connected");
+
+  socket.on("message", (msg) => {
+    io.emit("message", msg);
+  });
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected");
+  });
+});
+
 // Configurações de CORS robusta
 const corsOptions = {
   origin: [
@@ -45,7 +70,8 @@ app.get("/", (req, res) => {
   res.send("Servidor funcionando.");
 });
 
-// Rotas da API
+// Rotas de pagamento e outras rotas
+app.use("/payment", paymentRoutes);
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
 app.use("/users", userRoutes);
@@ -54,63 +80,7 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 app.use("/api", webhookRoutes);
 app.use("/webhooks", webhookRoutes);
-app.use("/payment", paymentRoutes); // Aplica CORS específico para a rota de pagamento
-
-// Rotas de feedback de pagamento
-app.get("/sucesso", (req, res) => {
-  console.log("Pagamento bem-sucedido:", req.query);
-  res.send("Pagamento realizado com sucesso!");
-});
-
-app.get("/falha", (req, res) => {
-  console.log("Pagamento falhou:", req.query);
-  res.send("Falha no pagamento. Por favor, tente novamente.");
-});
-
-app.get("/pendente", (req, res) => {
-  console.log("Pagamento pendente:", req.query);
-  res.send("Seu pagamento está pendente. Aguarde a confirmação.");
-});
-
-// Configuração do WebSocket
-const io = new Server(server, {
-  cors: {
-    origin: [
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
-      "https://ecommerce-7o0oh2qpf-andersonguestart098s-projects.vercel.app",
-      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
-    ],
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
-});
-
-io.on("connection", (socket) => {
-  console.log("Novo cliente conectado:", socket.id);
-
-  socket.on("userLoggedIn", (userName: string) => {
-    console.log(`Usuário logado: ${userName}`);
-    socket.emit("welcomeMessage", `Bem-vindo(a), ${userName}!`);
-  });
-
-  socket.on("disconnect", () => {
-    console.log("Cliente desconectado:", socket.id);
-  });
-});
-
-// Função para atualizar o status do pedido
-const emitOrderStatusUpdate = (
-  orderId: string,
-  newStatus: string,
-  userId: string
-) => {
-  io.to(userId).emit("orderStatusUpdated", { orderId, status: newStatus });
-};
 
 // Inicializar o servidor
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));
-
-export { emitOrderStatusUpdate };
