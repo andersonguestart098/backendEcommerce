@@ -11,7 +11,7 @@ import orderRoutes from "./routes/orderRoutes";
 import authRoutes from "./routes/authRoutes";
 import shippingRoutes from "./routes/shippingRoutes";
 import webhookRoutes from "./routes/webhookRoutes";
-import paymentRoutes from "./routes/paymentRoutes"; // Importa a nova rota de pagamentos
+import paymentRoutes from "./routes/paymentRoutes";
 
 const mercadopago = require("mercadopago");
 
@@ -33,6 +33,7 @@ const corsOptions = {
     "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
     "https://ecommerce-mkjgfjm4w-andersonguestart098s-projects.vercel.app",
     "https://ecommerce-7o0oh2qpf-andersonguestart098s-projects.vercel.app",
+    "*",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "x-auth-token"],
@@ -41,6 +42,7 @@ const corsOptions = {
 
 // Middlewares
 app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Middleware para responder às requisições OPTIONS
 app.use(express.json());
 
 // Rota raiz
