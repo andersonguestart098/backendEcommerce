@@ -10,7 +10,7 @@ export const createTransparentPayment = async (
   res: Response
 ): Promise<void> => {
   console.log("Iniciando criação de pagamento...");
-  console.log("Dados recebidos:", req.body); // Adiciona log para inspecionar os dados recebidos
+  console.log("Dados recebidos:", req.body); // Log dos dados recebidos
 
   const {
     transaction_amount,
@@ -19,14 +19,16 @@ export const createTransparentPayment = async (
     items,
     userId,
     device_id = "default_device_id",
+    token,
   } = req.body;
 
   // Validação dos dados
-  if (!transaction_amount || !payment_method_id || !payer) {
+  if (!transaction_amount || !payment_method_id || !payer || !token) {
     console.error("Dados obrigatórios ausentes:", {
       transaction_amount,
       payment_method_id,
       payer,
+      token,
     });
     res
       .status(400)
@@ -34,7 +36,7 @@ export const createTransparentPayment = async (
     return;
   }
 
-  // Verifica se items existe e se contém pelo menos um item, caso contrário, define uma descrição padrão
+  // Descrição do item
   const description =
     items && items.length > 0 ? items[0].description : "Compra de produtos";
 
@@ -42,6 +44,7 @@ export const createTransparentPayment = async (
     transaction_amount,
     description,
     payment_method_id,
+    token,
     payer: {
       email: payer.email,
       first_name: payer.first_name,
