@@ -1,4 +1,3 @@
-// index.ts ou app.ts
 import express from "express";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
@@ -36,6 +35,24 @@ const corsOptions = {
 // Aplica o CORS globalmente antes das rotas
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// Configuração do Socket.IO com CORS e suporte WebSocket
+const io = new SocketIOServer(server, {
+  path: "/socket.io",
+  cors: {
+    origin: corsOptions.origin,
+    methods: corsOptions.methods,
+    credentials: corsOptions.credentials,
+  },
+});
+
+io.on("connection", (socket) => {
+  console.log("Novo cliente conectado");
+
+  socket.on("disconnect", () => {
+    console.log("Cliente desconectado");
+  });
+});
 
 // Rotas principais
 app.get("/", (req, res) => {
