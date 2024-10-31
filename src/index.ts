@@ -40,9 +40,9 @@ const corsOptions = {
 };
 
 // Middlewares
-app.use(cors(corsOptions));
-app.options("*", cors(corsOptions)); // Middleware para responder às requisições OPTIONS
-app.use(express.json());
+app.use(express.json()); // 1. Processa o corpo da requisição primeiro
+app.use(cors(corsOptions)); // 2. Aplica o CORS em seguida
+app.options("*", cors(corsOptions)); // 3. Responde a requisições OPTIONS
 
 // Rota raiz
 app.get("/", (req, res) => {
