@@ -25,7 +25,7 @@ mercadopago.configurations.setAccessToken(
   process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
 );
 
-// Configurações de CORS
+// Configurações de CORS robusta
 const corsOptions = {
   origin: [
     "http://localhost:3000",
@@ -40,19 +40,16 @@ const corsOptions = {
 };
 
 // Middlewares
-app.use(express.json()); // 1. Processa o corpo da requisição primeiro
-app.use(cors(corsOptions)); // 2. Aplica o CORS em seguida
-app.options("*", cors(corsOptions)); // 3. Responde a requisições OPTIONS
+app.use(express.json()); // 1. Interpreta o JSON da requisição primeiro
+app.use(cors(corsOptions)); // 2. Aplica o CORS a todas as rotas e origens permitidas
+app.options("*", cors(corsOptions)); // 3. Responde a todas as requisições OPTIONS automaticamente
 
-// Rota raiz
+// Rotas principais
 app.get("/", (req, res) => {
   res.send("Servidor funcionando.");
 });
 
-// Rota de pagamento
-app.use("/payment", paymentRoutes);
-
-// Outras rotas
+// Rotas da API
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
 app.use("/users", userRoutes);
@@ -61,8 +58,9 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 app.use("/api", webhookRoutes);
 app.use("/webhooks", webhookRoutes);
+app.use("/payment", cors(corsOptions), paymentRoutes); // Aplica CORS específico para a rota de pagamento
 
-// Rota de status de pagamento para feedback do usuário
+// Rotas de feedback de pagamento
 app.get("/sucesso", (req, res) => {
   console.log("Pagamento bem-sucedido:", req.query);
   res.send("Pagamento realizado com sucesso!");
@@ -79,7 +77,19 @@ app.get("/pendente", (req, res) => {
 });
 
 // Configuração do WebSocket
-const io = new Server(server, { cors: corsOptions });
+const io = new Server(server, {
+  cors: {
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
+      "https://ecommerce-7o0oh2qpf-andersonguestart098s-projects.vercel.app",
+      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  },
+});
 
 io.on("connection", (socket) => {
   console.log("Novo cliente conectado:", socket.id);
