@@ -2,11 +2,8 @@ import { Request, Response } from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 
-// Inicializa o Prisma Client
 const prisma = new PrismaClient();
 dotenv.config();
-
-// Utiliza require para evitar problemas de typings do Mercado Pago
 const mercadopago = require("mercadopago");
 
 mercadopago.configure({
@@ -30,11 +27,13 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
-  // Verifica se o token é necessário apenas para métodos que realmente o exigem
+  // Exige o token apenas para pagamentos com cartão
+  const requiresToken = payment_method_id === "credit_card";
+
   if (
     !transaction_amount ||
     !payment_method_id ||
-    (payment_method_id !== "pix" && !token) ||
+    (requiresToken && !token) ||
     !userId
   ) {
     console.error("Dados obrigatórios ausentes:", {
@@ -50,7 +49,6 @@ export const createTransparentPayment = async (
   }
 
   try {
-    // Busca o usuário no banco de dados
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { address: true },
@@ -61,21 +59,19 @@ export const createTransparentPayment = async (
       return;
     }
 
-    // Prepara o objeto payer com informações do usuário
     const payer = {
       email: user.email,
       first_name: user.name.split(" ")[0],
       last_name: user.name.split(" ").slice(1).join(" "),
       identification: {
         type: "CPF",
-        number: user.cpf || "00000000000", // Usa um valor padrão se o CPF for opcional e não estiver preenchido
+        number: user.cpf || "00000000000",
       },
     };
 
     const description =
       items && items.length > 0 ? items[0].description : "Compra de produtos";
 
-    // Cria o pedido no banco de dados e recupera o ID do pedido
     const order = await prisma.order.create({
       data: {
         userId,
@@ -84,12 +80,11 @@ export const createTransparentPayment = async (
       },
     });
 
-    // Dados do pagamento com `order.id` em `external_reference`
     const paymentData = {
       transaction_amount,
       description,
       payment_method_id,
-      token, // Inclui o token apenas se necessário
+      ...(requiresToken && { token }), // Inclui o token apenas se necessário
       installments,
       payer,
       metadata: {
@@ -98,13 +93,12 @@ export const createTransparentPayment = async (
       statement_descriptor: "Seu E-commerce",
       notification_url:
         "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
-      external_reference: order.id, // Use o `order.id` aqui
+      external_reference: order.id,
     };
 
     const response = await mercadopago.payment.create(paymentData);
     console.log("Pagamento criado com sucesso:", response.body);
 
-    // Verifica se o QR Code Pix em base64 foi gerado
     if (response.body?.point_of_interaction?.transaction_data?.qr_code_base64) {
       res.status(200).json({
         message: "Pagamento criado",
@@ -119,9 +113,19 @@ export const createTransparentPayment = async (
           },
         },
       });
+    } else if (response.body?.transaction_details?.external_resource_url) {
+      // Para boleto bancário, envia o URL do boleto
+      res.status(200).json({
+        message: "Pagamento criado",
+        status: response.body.status,
+        status_detail: response.body.status_detail,
+        id: response.body.id,
+        ticket_url: response.body.transaction_details.external_resource_url,
+      });
     } else {
       res.status(200).json({
-        message: "Pagamento criado, mas o QR Code Pix não foi gerado.",
+        message:
+          "Pagamento criado, mas informações de retorno específicas não foram geradas.",
         status: response.body.status,
         status_detail: response.body.status_detail,
         id: response.body.id,
