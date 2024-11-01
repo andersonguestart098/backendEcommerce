@@ -17,34 +17,20 @@ dotenv.config();
 
 const app = express();
 const server = http.createServer(app);
-
-// Configurações de CORS robustas aplicadas diretamente
-const corsOptions = {
-  origin: [
-    "http://localhost:3000",
-    "http://localhost:3001",
-    "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
-    "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
-    "https://ecommerce-rb8yh4zc4-andersonguestart098s-projects.vercel.app",
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true,
-};
-
-// Aplica o CORS globalmente antes das rotas
-app.use(cors(corsOptions));
-app.use(express.json());
-
-// Configuração do Socket.IO com CORS e suporte WebSocket
 const io = new SocketIOServer(server, {
-  path: "/socket.io",
   cors: {
-    origin: corsOptions.origin,
-    methods: corsOptions.methods,
-    credentials: corsOptions.credentials,
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
   },
 });
+
+// Definir o io como uma propriedade do app
+app.set("io", io);
 
 io.on("connection", (socket) => {
   console.log("Novo cliente conectado");
@@ -54,12 +40,10 @@ io.on("connection", (socket) => {
   });
 });
 
-// Rotas principais
-app.get("/", (req, res) => {
-  res.send("Servidor funcionando!");
-});
+// Aplicar middlewares e rotas
+app.use(cors());
+app.use(express.json());
 
-// Rotas de pagamento e outras rotas
 app.use("/payment", paymentRoutes);
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
@@ -70,6 +54,5 @@ app.use("/shipping", shippingRoutes);
 app.use("/api", webhookRoutes);
 app.use("/webhooks", webhookRoutes);
 
-// Inicializar o servidor
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

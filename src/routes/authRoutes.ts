@@ -77,7 +77,6 @@ const registerHandler = async (req: UserRequest, res: Response, next: NextFuncti
   }
 };
 
-// Handler para login de usuário
 const loginHandler = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
@@ -103,7 +102,7 @@ const loginHandler = async (req: Request, res: Response, next: NextFunction): Pr
     const payload = {
       user: {
         id: user.id,
-        name: user.name, // Inclua o nome do usuário
+        name: user.name,
         tipoUsuario: user.tipoUsuario,
       },
     };
@@ -124,7 +123,11 @@ const loginHandler = async (req: Request, res: Response, next: NextFunction): Pr
           res.status(500).send("Erro ao gerar token");
           return;
         }
-        // Modifique aqui para incluir os dados do usuário na resposta
+
+        // Emitir evento de boas-vindas usando o io do Socket.IO
+        req.app.get("io").emit("welcomeMessage", `Bem-vindo(a), ${user.name}!`);
+
+        // Responder com o token e os dados do usuário
         res.json({ token, user: payload.user });
       }
     );
