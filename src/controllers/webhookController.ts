@@ -10,24 +10,18 @@ export const handleMercadoPagoWebhook = async (req: Request, res: Response): Pro
 
   const { type, action, data } = req.body;
 
-  // Verifica se o webhook está relacionado a um pagamento atualizado
   if (type === "payment" && action === "payment.updated" && data && data.id) {
     try {
       const paymentId = parseInt(data.id, 10);
-      console.log("ID do pagamento:", paymentId);
-
       if (isNaN(paymentId)) {
         console.error("ID de pagamento inválido");
-        res.sendStatus(400);
+        res.status(400).json({ message: "ID de pagamento inválido" });
         return;
       }
 
-      // Busca informações detalhadas do pagamento pelo ID
       const paymentResponse = await mercadopago.payment.findById(paymentId);
       const payment = paymentResponse.body;
-      console.log("Dados do pagamento:", payment);
 
-      // Extrai o external_reference e status do pagamento
       const orderId = payment.external_reference;
       const status = payment.status;
 
@@ -37,10 +31,9 @@ export const handleMercadoPagoWebhook = async (req: Request, res: Response): Pro
         return;
       }
 
-      // Mapeia o status para um valor compatível com o Prisma (OrderStatus)
-      const prismaStatus = status === "approved" ? "APPROVED" : status === "rejected" ? "REJECTED" : "PENDING";
+      const prismaStatus =
+        status === "approved" ? "APPROVED" : status === "rejected" ? "REJECTED" : "PENDING";
 
-      // Atualiza o status do pedido no banco de dados
       await prisma.order.update({
         where: { id: orderId },
         data: { status: prismaStatus },

@@ -22,25 +22,26 @@ const io = new SocketIOServer(server, {
     origin: [
       "http://localhost:3000",
       "http://localhost:3001",
+<<<<<<< HEAD
       "https://ecommerce-8tspgehvp-andersonguestart098s-projects.vercel.app",
+=======
+      "https://ecommerce-cp4s000f2-andersonguestart098s-projects.vercel.app",
+>>>>>>> 6316e4de4fa3c8a51b09201910d5ac6d05070c34
     ],
     methods: ["GET", "POST"],
     credentials: true,
   },
 });
 
-// Definir o io como uma propriedade do app
 app.set("io", io);
 
 io.on("connection", (socket) => {
   console.log("Novo cliente conectado");
-
   socket.on("disconnect", () => {
     console.log("Cliente desconectado");
   });
 });
 
-// Aplicar middlewares e rotas
 app.use(cors());
 app.use(express.json());
 
@@ -51,7 +52,6 @@ app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
-app.use("/api", webhookRoutes);
 app.use("/webhooks", webhookRoutes);
 
 const PORT = process.env.PORT || 3001;
