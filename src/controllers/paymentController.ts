@@ -2,11 +2,9 @@ import { Request, Response } from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 
-// Inicializa o Prisma Client
 const prisma = new PrismaClient();
 dotenv.config();
 
-// Utiliza require para evitar problemas de typings do Mercado Pago
 const mercadopago = require("mercadopago");
 
 mercadopago.configure({
@@ -30,24 +28,11 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
-  // Verifica se o token é necessário apenas para métodos que realmente o exigem
-  if (
-    !transaction_amount ||
-    !payment_method_id ||
-    (payment_method_id !== "pix" &&
-      payment_method_id !== "bolbradesco" &&
-      !token) ||
-    !userId
-  ) {
-    console.error("Dados obrigatórios ausentes:", {
-      transaction_amount,
-      payment_method_id,
-      token,
-      userId,
+  // Verificação básica de valores obrigatórios
+  if (!transaction_amount || !payment_method_id || !userId) {
+    res.status(400).json({
+      error: "transaction_amount, payment_method_id e userId são obrigatórios.",
     });
-    res
-      .status(400)
-      .json({ error: "Dados obrigatórios ausentes ou incorretos." });
     return;
   }
 
@@ -63,7 +48,6 @@ export const createTransparentPayment = async (
       return;
     }
 
-    // Prepara o objeto payer com informações do usuário
     const payer = {
       email: user.email,
       first_name: user.name.split(" ")[0],
@@ -86,13 +70,11 @@ export const createTransparentPayment = async (
       },
     });
 
-    // Dados do pagamento com `order.id` em `external_reference`
-    const paymentData = {
+    // Configura o pagamento conforme o método selecionado
+    let paymentData: any = {
       transaction_amount,
       description,
       payment_method_id,
-      ...(payment_method_id === "credit_card" && { token }), // Inclui o token apenas se necessário para cartões
-      installments,
       payer,
       metadata: {
         device_id: device_id,
@@ -103,10 +85,27 @@ export const createTransparentPayment = async (
       external_reference: order.id,
     };
 
+    // Condições específicas para cada método de pagamento
+    if (payment_method_id === "credit_card") {
+      if (!token) {
+        res
+          .status(400)
+          .json({ error: "Token é obrigatório para pagamento com cartão." });
+        return;
+      }
+      paymentData = { ...paymentData, token, installments };
+    } else if (payment_method_id === "bolbradesco") {
+      console.log("Configuração do pagamento via boleto bancário.");
+      // Não é necessário token para boleto, então não adicionamos nada extra
+    } else if (payment_method_id === "pix") {
+      console.log("Configuração do pagamento via Pix.");
+    }
+
+    // Criação do pagamento no Mercado Pago
     const response = await mercadopago.payment.create(paymentData);
     console.log("Pagamento criado com sucesso:", response.body);
 
-    // Verifica se é um boleto e responde com o link do boleto
+    // Manipula a resposta com base no método de pagamento
     if (
       payment_method_id === "bolbradesco" &&
       response.body.transaction_details?.external_resource_url
@@ -118,13 +117,12 @@ export const createTransparentPayment = async (
         id: response.body.id,
         boleto_url: response.body.transaction_details.external_resource_url,
       });
-    }
-    // Verifica se o QR Code Pix em base64 foi gerado
-    else if (
+    } else if (
+      payment_method_id === "pix" &&
       response.body?.point_of_interaction?.transaction_data?.qr_code_base64
     ) {
       res.status(200).json({
-        message: "Pagamento criado",
+        message: "Pagamento via Pix criado",
         status: response.body.status,
         status_detail: response.body.status_detail,
         id: response.body.id,
@@ -138,7 +136,7 @@ export const createTransparentPayment = async (
       });
     } else {
       res.status(200).json({
-        message: "Pagamento criado, mas o QR Code Pix não foi gerado.",
+        message: "Pagamento criado",
         status: response.body.status,
         status_detail: response.body.status_detail,
         id: response.body.id,
