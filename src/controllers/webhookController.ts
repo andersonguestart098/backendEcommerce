@@ -1,6 +1,6 @@
 import { Request, Response } from "express";
 import { PrismaClient, OrderStatus } from "@prisma/client";
-import { emitOrderStatusUpdate } from "../utils/events"; // Certifique-se de que este utilitário está configurado para emitir eventos em tempo real
+import { emitOrderStatusUpdate } from "../utils/events"; // Verifique se esse utilitário emite eventos em tempo real
 const mercadopago = require("mercadopago");
 
 const prisma = new PrismaClient();
@@ -14,20 +14,15 @@ export const handleMercadoPagoWebhook = async (
 ): Promise<void> => {
   console.log("Webhook recebido:", req.body);
 
-  const { type, action, data } = req.body;
+  // Verifica a estrutura da requisição
+  const type = req.body.type || req.query.topic;
+  const action = req.body.action || req.query.action;
+  const paymentId = parseInt(req.body.data?.id || req.query.id, 10);
 
-  if (type === "payment" && action === "payment.updated" && data && data.id) {
+  if (type === "payment" && paymentId) {
     try {
-      const paymentId = parseInt(data.id, 10);
-      if (isNaN(paymentId)) {
-        console.error("ID de pagamento inválido");
-        res.status(400).json({ message: "ID de pagamento inválido" });
-        return;
-      }
-
       const paymentResponse = await mercadopago.payment.findById(paymentId);
       const payment = paymentResponse.body;
-
       const orderId = payment.external_reference;
       const status = payment.status;
 
@@ -41,12 +36,14 @@ export const handleMercadoPagoWebhook = async (
         return;
       }
 
-      // Mapear o status do Mercado Pago para os valores válidos do enum OrderStatus
+      // Mapear o status do Mercado Pago para o enum OrderStatus
       let prismaStatus: OrderStatus;
       if (status === "approved") {
         prismaStatus = OrderStatus.APPROVED;
       } else if (status === "rejected") {
         prismaStatus = OrderStatus.REJECTED;
+      } else if (status === "pending" || status === "in_process") {
+        prismaStatus = OrderStatus.PENDING;
       } else {
         prismaStatus = OrderStatus.PENDING;
       }
