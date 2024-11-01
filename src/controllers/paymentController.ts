@@ -34,7 +34,9 @@ export const createTransparentPayment = async (
   if (
     !transaction_amount ||
     !payment_method_id ||
-    (payment_method_id !== "pix" && !token) ||
+    (payment_method_id !== "pix" &&
+      payment_method_id !== "bolbradesco" &&
+      !token) ||
     !userId
   ) {
     console.error("Dados obrigatórios ausentes:", {
@@ -89,7 +91,7 @@ export const createTransparentPayment = async (
       transaction_amount,
       description,
       payment_method_id,
-      token, // Inclui o token apenas se necessário
+      ...(payment_method_id === "credit_card" && { token }), // Inclui o token apenas se necessário para cartões
       installments,
       payer,
       metadata: {
@@ -98,14 +100,29 @@ export const createTransparentPayment = async (
       statement_descriptor: "Seu E-commerce",
       notification_url:
         "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
-      external_reference: order.id, // Use o `order.id` aqui
+      external_reference: order.id,
     };
 
     const response = await mercadopago.payment.create(paymentData);
     console.log("Pagamento criado com sucesso:", response.body);
 
+    // Verifica se é um boleto e responde com o link do boleto
+    if (
+      payment_method_id === "bolbradesco" &&
+      response.body.transaction_details?.external_resource_url
+    ) {
+      res.status(200).json({
+        message: "Pagamento via boleto criado",
+        status: response.body.status,
+        status_detail: response.body.status_detail,
+        id: response.body.id,
+        boleto_url: response.body.transaction_details.external_resource_url,
+      });
+    }
     // Verifica se o QR Code Pix em base64 foi gerado
-    if (response.body?.point_of_interaction?.transaction_data?.qr_code_base64) {
+    else if (
+      response.body?.point_of_interaction?.transaction_data?.qr_code_base64
+    ) {
       res.status(200).json({
         message: "Pagamento criado",
         status: response.body.status,
