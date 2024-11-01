@@ -25,7 +25,7 @@ const corsOptions = {
     "http://localhost:3001",
     "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com",
     "https://ecommerce-git-master-andersonguestart098s-projects.vercel.app",
-    "https://ecommerce-b26z0yiod-andersonguestart098s-projects.vercel.app",
+    "https://ecommerce-c1alx2l1u-andersonguestart098s-projects.vercel.app",
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
