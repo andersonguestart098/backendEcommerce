@@ -30,7 +30,7 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
-  // Verifique se o token é necessário apenas para métodos que realmente o exigem
+  // Verifica se o token é necessário apenas para métodos que realmente o exigem
   if (
     !transaction_amount ||
     !payment_method_id ||
@@ -43,7 +43,9 @@ export const createTransparentPayment = async (
       token,
       userId,
     });
-    res.status(400).json({ error: "Dados obrigatórios ausentes ou incorretos." });
+    res
+      .status(400)
+      .json({ error: "Dados obrigatórios ausentes ou incorretos." });
     return;
   }
 
@@ -101,12 +103,30 @@ export const createTransparentPayment = async (
 
     const response = await mercadopago.payment.create(paymentData);
     console.log("Pagamento criado com sucesso:", response.body);
-    res.status(200).json({
-      message: "Pagamento criado",
-      status: response.body.status,
-      status_detail: response.body.status_detail,
-      id: response.body.id,
-    });
+
+    // Verifica se o QR Code Pix em base64 foi gerado
+    if (response.body?.point_of_interaction?.transaction_data?.qr_code_base64) {
+      res.status(200).json({
+        message: "Pagamento criado",
+        status: response.body.status,
+        status_detail: response.body.status_detail,
+        id: response.body.id,
+        point_of_interaction: {
+          transaction_data: {
+            qr_code_base64:
+              response.body.point_of_interaction.transaction_data
+                .qr_code_base64,
+          },
+        },
+      });
+    } else {
+      res.status(200).json({
+        message: "Pagamento criado, mas o QR Code Pix não foi gerado.",
+        status: response.body.status,
+        status_detail: response.body.status_detail,
+        id: response.body.id,
+      });
+    }
   } catch (error: any) {
     console.error("Erro ao criar pagamento:", error.response?.data || error);
     res.status(500).json({
