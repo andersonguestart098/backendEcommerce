@@ -68,7 +68,7 @@ export const createTransparentPayment = async (
 
     const description =
       items && items.length > 0 ? items[0].description : "Compra de produtos";
-
+ 
     const paymentData = {
       transaction_amount,
       description,
