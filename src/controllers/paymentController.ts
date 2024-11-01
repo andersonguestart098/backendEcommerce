@@ -68,7 +68,17 @@ export const createTransparentPayment = async (
 
     const description =
       items && items.length > 0 ? items[0].description : "Compra de produtos";
- 
+
+    // Cria o pedido no banco de dados e recupera o ID do pedido
+    const order = await prisma.order.create({
+      data: {
+        userId,
+        totalPrice: transaction_amount,
+        status: "PENDING",
+      },
+    });
+
+    // Dados do pagamento com `order.id` em `external_reference`
     const paymentData = {
       transaction_amount,
       description,
@@ -82,7 +92,7 @@ export const createTransparentPayment = async (
       statement_descriptor: "Seu E-commerce",
       notification_url:
         "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
-      external_reference: userId,
+      external_reference: order.id, // Use o `order.id` aqui
     };
 
     const response = await mercadopago.payment.create(paymentData);

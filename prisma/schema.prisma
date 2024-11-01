@@ -62,16 +62,19 @@ model PaymentOption {
 }
 
 model Order {
-  id         String        @id @default(auto()) @map("_id") @db.ObjectId
-  userId     String        @db.ObjectId
-  user       User          @relation(fields: [userId], references: [id])
-  products   OrderProduct[]  // Relacionamento com OrderProduct
-  status     OrderStatus   @default(PENDING)
-  totalPrice Float
-  shippingCost Float?      @default(0) 
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  userId       String        @db.ObjectId
+  user         User          @relation(fields: [userId], references: [id])
+  products     OrderProduct[] // Relacionamento com OrderProduct
+  status       OrderStatus    @default(PENDING)
+  totalPrice   Float
+  shippingCost Float?         @default(0)
+  paymentId    String?        // ID de pagamento do Mercado Pago
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  metadata     Json?          // Dados adicionais para controle do Mercado Pago
 }
+
 
 model OrderProduct {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId
