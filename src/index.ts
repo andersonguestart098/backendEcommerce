@@ -29,18 +29,15 @@ const io = new SocketIOServer(server, {
   },
 });
 
-// Definir o io como uma propriedade do app
 app.set("io", io);
 
 io.on("connection", (socket) => {
   console.log("Novo cliente conectado");
-
   socket.on("disconnect", () => {
     console.log("Cliente desconectado");
   });
 });
 
-// Aplicar middlewares e rotas
 app.use(cors());
 app.use(express.json());
 
@@ -51,7 +48,6 @@ app.use("/users", userRoutes);
 app.use("/auth", authRoutes);
 app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
-app.use("/api", webhookRoutes);
 app.use("/webhooks", webhookRoutes);
 
 const PORT = process.env.PORT || 3001;
