@@ -30,16 +30,20 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
-  if (!transaction_amount || !payment_method_id || !token || !userId) {
+  // Verifique se o token é necessário apenas para métodos que realmente o exigem
+  if (
+    !transaction_amount ||
+    !payment_method_id ||
+    (payment_method_id !== "pix" && !token) ||
+    !userId
+  ) {
     console.error("Dados obrigatórios ausentes:", {
       transaction_amount,
       payment_method_id,
       token,
       userId,
     });
-    res
-      .status(400)
-      .json({ error: "Dados obrigatórios ausentes ou incorretos." });
+    res.status(400).json({ error: "Dados obrigatórios ausentes ou incorretos." });
     return;
   }
 
@@ -83,7 +87,7 @@ export const createTransparentPayment = async (
       transaction_amount,
       description,
       payment_method_id,
-      token,
+      token, // Inclui o token apenas se necessário
       installments,
       payer,
       metadata: {
