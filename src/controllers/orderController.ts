@@ -13,7 +13,6 @@ interface AuthenticatedRequest extends Request {
   };
 }
 
-// Função para listar todos os pedidos (apenas para administradores)
 export const getAllOrders = async (
   req: Request,
   res: Response
@@ -36,6 +35,7 @@ export const getAllOrders = async (
       data: { shippingCost: 0 },
     });
 
+    // Busca pedidos em ordem decrescente pela data de criação
     const orders = await prisma.order.findMany({
       include: {
         products: {
@@ -43,6 +43,9 @@ export const getAllOrders = async (
             product: true,
           },
         },
+      },
+      orderBy: {
+        createdAt: "desc",
       },
     });
 
@@ -130,9 +133,12 @@ export const createOrder = async (
         unit_price: item.unit_price,
       })),
       back_urls: {
-        success: "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/sucesso",
-        failure: "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/falha",
-        pending: "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/pendente",
+        success:
+          "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/sucesso",
+        failure:
+          "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/falha",
+        pending:
+          "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/pendente",
       },
       auto_return: "approved" as const,
       statement_descriptor: "Seu E-commerce",
@@ -140,7 +146,9 @@ export const createOrder = async (
     };
 
     // Criação da preferência de pagamento no Mercado Pago
-    const mercadoPagoResponse = await mercadopago.preferences.create(preference);
+    const mercadoPagoResponse = await mercadopago.preferences.create(
+      preference
+    );
 
     res.status(201).json({
       order,
@@ -153,7 +161,6 @@ export const createOrder = async (
       .json({ message: "Erro ao criar pedido ou preferência de pagamento" });
   }
 };
-
 
 // Função para atualizar o status do pedido
 export const updateOrderStatus = async (

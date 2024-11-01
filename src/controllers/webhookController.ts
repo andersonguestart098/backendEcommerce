@@ -1,11 +1,17 @@
 import { Request, Response } from "express";
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient, OrderStatus } from "@prisma/client";
+import { emitOrderStatusUpdate } from "../utils/events"; // Certifique-se de que este utilitário está configurado para emitir eventos em tempo real
 const mercadopago = require("mercadopago");
 
 const prisma = new PrismaClient();
-mercadopago.configurations.setAccessToken(process.env.MERCADO_PAGO_ACCESS_TOKEN || "");
+mercadopago.configurations.setAccessToken(
+  process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
+);
 
-export const handleMercadoPagoWebhook = async (req: Request, res: Response): Promise<void> => {
+export const handleMercadoPagoWebhook = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   console.log("Webhook recebido:", req.body);
 
   const { type, action, data } = req.body;
@@ -26,18 +32,33 @@ export const handleMercadoPagoWebhook = async (req: Request, res: Response): Pro
       const status = payment.status;
 
       if (!orderId) {
-        console.error("ID do pedido não encontrado (external_reference é nulo)");
-        res.status(400).json({ message: "ID do pedido não encontrado no pagamento." });
+        console.error(
+          "ID do pedido não encontrado (external_reference é nulo)"
+        );
+        res
+          .status(400)
+          .json({ message: "ID do pedido não encontrado no pagamento." });
         return;
       }
 
-      const prismaStatus =
-        status === "approved" ? "APPROVED" : status === "rejected" ? "REJECTED" : "PENDING";
+      // Mapear o status do Mercado Pago para os valores válidos do enum OrderStatus
+      let prismaStatus: OrderStatus;
+      if (status === "approved") {
+        prismaStatus = OrderStatus.APPROVED;
+      } else if (status === "rejected") {
+        prismaStatus = OrderStatus.REJECTED;
+      } else {
+        prismaStatus = OrderStatus.PENDING;
+      }
 
-      await prisma.order.update({
+      // Atualizar o status do pedido no banco de dados
+      const updatedOrder = await prisma.order.update({
         where: { id: orderId },
         data: { status: prismaStatus },
       });
+
+      // Emitir evento para atualização de status em tempo real
+      emitOrderStatusUpdate(orderId, prismaStatus, updatedOrder.userId);
 
       console.log(`Pedido ${orderId} atualizado para status: ${prismaStatus}`);
       res.sendStatus(200);
