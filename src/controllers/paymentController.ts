@@ -28,16 +28,25 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
-  // Verificação básica de valores obrigatórios
-  if (!transaction_amount || !payment_method_id || !userId) {
-    res.status(400).json({
-      error: "transaction_amount, payment_method_id e userId são obrigatórios.",
+  if (
+    !transaction_amount ||
+    !payment_method_id ||
+    (payment_method_id === "credit_card" && !token) ||
+    !userId
+  ) {
+    console.error("Dados obrigatórios ausentes:", {
+      transaction_amount,
+      payment_method_id,
+      token,
+      userId,
     });
+    res
+      .status(400)
+      .json({ error: "Dados obrigatórios ausentes ou incorretos." });
     return;
   }
 
   try {
-    // Busca o usuário no banco de dados
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { address: true },
@@ -54,14 +63,13 @@ export const createTransparentPayment = async (
       last_name: user.name.split(" ").slice(1).join(" "),
       identification: {
         type: "CPF",
-        number: user.cpf || "00000000000", // Usa um valor padrão se o CPF for opcional e não estiver preenchido
+        number: user.cpf || "00000000000",
       },
     };
 
     const description =
       items && items.length > 0 ? items[0].description : "Compra de produtos";
 
-    // Cria o pedido no banco de dados e recupera o ID do pedido
     const order = await prisma.order.create({
       data: {
         userId,
@@ -70,8 +78,7 @@ export const createTransparentPayment = async (
       },
     });
 
-    // Configura o pagamento conforme o método selecionado
-    let paymentData: any = {
+    const paymentData: any = {
       transaction_amount,
       description,
       payment_method_id,
@@ -85,27 +92,14 @@ export const createTransparentPayment = async (
       external_reference: order.id,
     };
 
-    // Condições específicas para cada método de pagamento
     if (payment_method_id === "credit_card") {
-      if (!token) {
-        res
-          .status(400)
-          .json({ error: "Token é obrigatório para pagamento com cartão." });
-        return;
-      }
-      paymentData = { ...paymentData, token, installments };
-    } else if (payment_method_id === "bolbradesco") {
-      console.log("Configuração do pagamento via boleto bancário.");
-      // Não é necessário token para boleto, então não adicionamos nada extra
-    } else if (payment_method_id === "pix") {
-      console.log("Configuração do pagamento via Pix.");
+      paymentData.token = token;
+      paymentData.installments = installments;
     }
 
-    // Criação do pagamento no Mercado Pago
     const response = await mercadopago.payment.create(paymentData);
     console.log("Pagamento criado com sucesso:", response.body);
 
-    // Manipula a resposta com base no método de pagamento
     if (
       payment_method_id === "bolbradesco" &&
       response.body.transaction_details?.external_resource_url
