@@ -100,20 +100,20 @@ export const createOrder = async (
   res: Response
 ): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
-  const { products, totalPrice, shippingCost } = req.body;
+  const { items, totalAmount, paymentId } = req.body;
   const userId = authReq.user.id;
 
   try {
-    // Criação do pedido no banco de dados
+    // Criação do pedido no banco de dados com os produtos associados
     const order = await prisma.order.create({
       data: {
         userId,
-        totalPrice,
-        shippingCost: shippingCost || 0, // Garante que o shippingCost seja 0 se estiver ausente
+        totalPrice: totalAmount,
+        shippingCost: 0, // Defina um valor de custo de envio ou ajuste conforme a lógica do seu projeto
         products: {
-          create: products.map((product: any) => ({
-            productId: product.id,
-            quantity: product.quantity,
+          create: items.map((item: any) => ({
+            productId: item.productId,
+            quantity: item.quantity,
           })),
         },
       },
@@ -124,24 +124,23 @@ export const createOrder = async (
 
     // Configuração da preferência de pagamento para o Mercado Pago
     const preference = {
-      items: products.map((product: any) => ({
-        title: product.name,
-        quantity: product.quantity,
-        unit_price: product.price,
+      items: items.map((item: any) => ({
+        title: item.title,
+        quantity: item.quantity,
+        unit_price: item.unit_price,
       })),
       back_urls: {
-        success: "https://seu-front-end.com/order-confirmation",
-        failure: "https://seu-front-end.com/order-failure",
-        pending: "https://seu-front-end.com/order-pending",
+        success: "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/sucesso",
+        failure: "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/falha",
+        pending: "https://ecommerce-1vm200wq8-andersonguestart098s-projects.vercel.app/pendente",
       },
       auto_return: "approved" as const,
       statement_descriptor: "Seu E-commerce",
       external_reference: order.id.toString(),
     };
 
-    const mercadoPagoResponse = await mercadopago.preferences.create(
-      preference
-    );
+    // Criação da preferência de pagamento no Mercado Pago
+    const mercadoPagoResponse = await mercadopago.preferences.create(preference);
 
     res.status(201).json({
       order,
@@ -154,6 +153,7 @@ export const createOrder = async (
       .json({ message: "Erro ao criar pedido ou preferência de pagamento" });
   }
 };
+
 
 // Função para atualizar o status do pedido
 export const updateOrderStatus = async (
