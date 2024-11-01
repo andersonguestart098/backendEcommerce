@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 
+// Inicializa o Prisma Client
 const prisma = new PrismaClient();
 dotenv.config();
 
@@ -47,6 +48,7 @@ export const createTransparentPayment = async (
   }
 
   try {
+    // Busca o usuário no banco de dados
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { address: true },
@@ -57,10 +59,11 @@ export const createTransparentPayment = async (
       return;
     }
 
+    // Prepara o objeto payer com informações do usuário
     const payer = {
       email: user.email,
-      first_name: user.name.split(" ")[0],
-      last_name: user.name.split(" ").slice(1).join(" "),
+      first_name: user.name.split(" ")[0] || "Nome",
+      last_name: user.name.split(" ").slice(1).join(" ") || "Sobrenome",
       identification: {
         type: "CPF",
         number: user.cpf || "00000000000",
@@ -70,6 +73,7 @@ export const createTransparentPayment = async (
     const description =
       items && items.length > 0 ? items[0].description : "Compra de produtos";
 
+    // Cria o pedido no banco de dados e recupera o ID do pedido
     const order = await prisma.order.create({
       data: {
         userId,
@@ -78,6 +82,7 @@ export const createTransparentPayment = async (
       },
     });
 
+    // Dados do pagamento com `order.id` em `external_reference`
     const paymentData: any = {
       transaction_amount,
       description,
