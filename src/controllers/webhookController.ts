@@ -8,7 +8,7 @@ mercadopago.configurations.setAccessToken(
   process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
 );
 
-const handleMercadoPagoWebhook = async (
+export const handleMercadoPagoWebhook = async (
   req: Request,
   res: Response
 ): Promise<void> => {
