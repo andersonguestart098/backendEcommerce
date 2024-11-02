@@ -29,13 +29,15 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
+  // Verifique se o transaction_amount é válido
   if (
     !transaction_amount ||
+    transaction_amount <= 0.5 || // Exemplo: mínimo de 0.5 reais para o Mercado Pago
     !payment_method_id ||
     (payment_method_id === "credit_card" && !token) ||
     !userId
   ) {
-    console.error("Dados obrigatórios ausentes:", {
+    console.error("Dados obrigatórios ausentes ou incorretos:", {
       transaction_amount,
       payment_method_id,
       token,
@@ -46,7 +48,6 @@ export const createTransparentPayment = async (
       .json({ error: "Dados obrigatórios ausentes ou incorretos." });
     return;
   }
-
   try {
     // Busca o usuário no banco de dados
     const user = await prisma.user.findUnique({
