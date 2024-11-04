@@ -1,7 +1,8 @@
 // orderController.ts
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
-import { emitOrderStatusUpdate } from "../utils/events"; // Ajuste o caminho para apontar para events.ts
+import { emitOrderStatusUpdate } from "../utils/events";
+
 const mercadopago = require("mercadopago");
 
 const prisma = new PrismaClient();
@@ -19,14 +20,7 @@ export const getAllOrders = async (
 ): Promise<void> => {
   const authReq = req as AuthenticatedRequest;
   const userRole = authReq.user.tipoUsuario;
-
-  if (userRole !== "admin") {
-    res.status(403).json({
-      message:
-        "Acesso negado: apenas administradores podem ver todos os pedidos",
-    });
-    return;
-  }
+  const userId = authReq.user.id;
 
   try {
     // Atualiza pedidos onde `shippingCost` é null para 0
@@ -35,19 +29,44 @@ export const getAllOrders = async (
       data: { shippingCost: 0 },
     });
 
-    // Busca pedidos em ordem decrescente pela data de criação
-    const orders = await prisma.order.findMany({
-      include: {
-        products: {
-          include: {
-            product: true,
+    // Busca pedidos de acordo com o tipo de usuário
+    let orders;
+    if (userRole === "admin") {
+      // Se for admin, retorna todos os pedidos em ordem decrescente pela data de criação
+      orders = await prisma.order.findMany({
+        include: {
+          products: {
+            include: {
+              product: true,
+            },
           },
         },
-      },
-      orderBy: {
-        createdAt: "desc",
-      },
-    });
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+    } else if (userRole === "cliente") {
+      // Se for cliente, retorna apenas os pedidos do usuário autenticado
+      orders = await prisma.order.findMany({
+        where: { userId },
+        include: {
+          products: {
+            include: {
+              product: true,
+            },
+          },
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+    } else {
+      // Caso o tipo de usuário não seja válido
+      res.status(403).json({
+        message: "Acesso negado: tipo de usuário não autorizado",
+      });
+      return;
+    }
 
     res.json(orders);
   } catch (err) {
@@ -55,7 +74,6 @@ export const getAllOrders = async (
     res.status(500).json({ message: "Erro ao buscar pedidos" });
   }
 };
-
 // Fetch a specific order by ID
 export const getOrderById = async (
   req: Request,

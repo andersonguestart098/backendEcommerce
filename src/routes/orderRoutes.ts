@@ -5,8 +5,9 @@ import authMiddleware from '../middleware/authMiddleware';
 const router = Router();
 
 // Rotas de pedidos
+// Rotas de pedidos
+router.get('/me', authMiddleware, getAllOrders); // Lista pedidos do usuário autenticado (cliente)
 router.get('/', authMiddleware, getAllOrders); // Lista todos os pedidos (admin)
-router.get('/me', authMiddleware, getAllOrders); // Lista pedidos do usuário autenticado
 router.get('/:id', authMiddleware, getOrderById); // Detalhes de um pedido específico
 router.post('/', authMiddleware, createOrder); // Criação de um novo pedido
 router.patch('/:id', authMiddleware, updateOrderStatus); // Atualiza o status de um pedido

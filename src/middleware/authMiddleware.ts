@@ -7,7 +7,7 @@ interface AuthenticatedUser {
 }
 
 interface AuthenticatedRequest extends Request {
-  user: AuthenticatedUser;
+  user: AuthenticatedUser; // Tornar `user` obrigatório
 }
 
 const authMiddleware: RequestHandler = (
@@ -44,7 +44,8 @@ const authMiddleware: RequestHandler = (
     console.log(`authMiddleware: Usuário autenticado - ID: ${user.id}, Tipo: ${user.tipoUsuario}`);
 
     // Verificação do tipo de usuário
-    if (user.tipoUsuario !== "cliente") {
+    if ((req.path === '/me' && user.tipoUsuario !== 'cliente') || 
+        (req.path !== '/me' && user.tipoUsuario !== 'admin')) {
       console.warn(`authMiddleware: Acesso negado para tipo de usuário: ${user.tipoUsuario}`);
       res.status(403).json({ msg: "Acesso negado para este tipo de usuário." });
       return;
@@ -57,5 +58,6 @@ const authMiddleware: RequestHandler = (
     res.status(401).json({ msg: "Token inválido" });
   }
 };
+
 
 export default authMiddleware;
