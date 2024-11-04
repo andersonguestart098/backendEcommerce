@@ -30,15 +30,15 @@ export const handleMercadoPagoWebhook = async (
         return;
       }
 
-      // Atualize os mapeamentos de status para refletir os valores corretos do enum `OrderStatus`
       let prismaStatus: OrderStatus;
       if (status === "approved") {
-        prismaStatus = OrderStatus.PAYMENT_APPROVED; // Altere para `PAYMENT_APPROVED`
+        prismaStatus = OrderStatus.APPROVED; // Atualize para `APPROVED`
       } else if (status === "rejected") {
         prismaStatus = OrderStatus.REJECTED;
       } else {
         prismaStatus = OrderStatus.PENDING;
       }
+      
 
       const updatedOrder = await prisma.order.update({
         where: { id: orderId },

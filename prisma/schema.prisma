@@ -12,7 +12,7 @@ datasource db {
 
 enum OrderStatus {
   PENDING
-  PAYMENT_APPROVED
+  APPROVED
   REJECTED
   AWAITING_STOCK_CONFIRMATION
   SEPARATED
@@ -20,6 +20,7 @@ enum OrderStatus {
   DELIVERED
   CANCELED
 }
+
 
 
 model Banner {
