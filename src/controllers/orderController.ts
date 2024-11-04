@@ -192,14 +192,14 @@ export const updateOrderStatus = async (
 
   const validStatuses = [
     "PENDING",
-    "PAYMENT_APPROVED",
+    "APPROVED",
     "AWAITING_STOCK_CONFIRMATION",
     "SEPARATED",
     "DISPATCHED",
     "DELIVERED",
     "CANCELED",
   ];
-
+  
   if (!validStatuses.includes(status)) {
     res.status(400).json({ message: "Invalid status" });
     return;
