@@ -12,7 +12,7 @@ datasource db {
 
 enum OrderStatus {
   PENDING
-  APPROVED
+  PAYMENT_APPROVED
   REJECTED
   AWAITING_STOCK_CONFIRMATION
   SEPARATED
@@ -20,6 +20,7 @@ enum OrderStatus {
   DELIVERED
   CANCELED
 }
+
 
 model Banner {
   id        String   @id @default(auto()) @map("_id") @db.ObjectId // ID explícito com ObjectId para MongoDB
