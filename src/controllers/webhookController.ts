@@ -30,9 +30,10 @@ export const handleMercadoPagoWebhook = async (
         return;
       }
 
+      // Atualize os mapeamentos de status para refletir os valores corretos do enum `OrderStatus`
       let prismaStatus: OrderStatus;
       if (status === "approved") {
-        prismaStatus = OrderStatus.APPROVED;
+        prismaStatus = OrderStatus.PAYMENT_APPROVED; // Altere para `PAYMENT_APPROVED`
       } else if (status === "rejected") {
         prismaStatus = OrderStatus.REJECTED;
       } else {
@@ -56,4 +57,3 @@ export const handleMercadoPagoWebhook = async (
     res.status(400).json({ message: "Dados de webhook inválidos" });
   }
 };
-
