@@ -110,11 +110,7 @@ export const updateUser = async (
   res: Response
 ): Promise<Response<any>> => {
   try {
-    // Captura o token do header
-    const token =
-      typeof req.headers["x-auth-token"] === "string"
-        ? req.headers["x-auth-token"]
-        : req.headers.authorization?.split(" ")[1];
+    const token = req.headers["x-auth-token"] as string;
 
     if (!token) {
       return res.status(401).json({ message: "Token não fornecido" });
@@ -138,25 +134,22 @@ export const updateUser = async (
         phone,
         address: {
           upsert: {
-            create: address, // Cria um novo endereço se não existir
-            update: {
-              street: address.street,
-              city: address.city,
-              state: address.state,
-              postalCode: address.postalCode,
-              country: address.country,
-            }, // Atualiza o endereço existente
+            create: address,
+            update: address,
           },
         },
       },
-      include: { address: true },
     });
 
     return res
       .status(200)
       .json({ message: "Usuário atualizado com sucesso", updatedUser });
   } catch (error) {
-    console.error("Erro ao atualizar usuário:", error);
+    console.error("Erro ao atualizar usuário:", {
+      message: error instanceof Error ? error.message : "Erro desconhecido",
+      stack: error instanceof Error ? error.stack : null,
+      details: error,
+    });
     return res.status(500).json({ message: "Erro ao atualizar usuário" });
   }
 };

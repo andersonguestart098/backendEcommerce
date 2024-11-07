@@ -59,14 +59,11 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 app.use("/webhooks", webhookRoutes);
 
-app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
-  console.error("Erro Detalhado: ", {
-    message: err.message,
-    stack: err.stack,
-    method: req.method,
-    path: req.path,
-  });
-  res.status(500).json({ message: "Erro interno do servidor" });
+app.use((err: any, req: Request, res: Response, next: NextFunction) => {
+  console.error("Erro capturado pelo middleware:", err);
+  res
+    .status(err.status || 500)
+    .json({ message: err.message || "Erro interno do servidor" });
 });
 
 // Inicialização do servidor
