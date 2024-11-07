@@ -11,8 +11,8 @@ export const upload = multer({ storage });
 // Function to handle multiple file fields
 export const createUploadMiddleware = () => {
   return upload.fields([
-    { name: "images", maxCount: 5 }, // Campo para imagens principais
-    { name: "colors", maxCount: 5 }, // Campo para imagens de cores
+    { name: "images", maxCount: 5 },
+    { name: "colors", maxCount: 10 }, // Certifique-se de aceitar 'colors'
   ]);
 };
 
