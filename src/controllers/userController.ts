@@ -150,3 +150,46 @@ export const updateUser = async (
     return res.status(500).json({ message: "Erro ao atualizar usuário" });
   }
 };
+
+export const getProfile = async (
+  req: Request,
+  res: Response
+): Promise<Response<any>> => {
+  try {
+    // Captura o token do header
+    const token =
+      typeof req.headers["x-auth-token"] === "string"
+        ? req.headers["x-auth-token"]
+        : req.headers.authorization?.split(" ")[1];
+
+    if (!token) {
+      return res.status(401).json({ message: "Token não fornecido" });
+    }
+
+    // Extrai o ID do usuário do token
+    const userId = verifyTokenAndExtractUserId(token);
+
+    if (!userId) {
+      return res.status(401).json({ message: "Token inválido ou expirado" });
+    }
+
+    console.log("Buscando perfil do usuário com ID:", userId);
+
+    // Busca os dados do usuário logado
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { address: true }, // Inclui o endereço associado, se houver
+    });
+
+    if (!user) {
+      return res.status(404).json({ message: "Usuário não encontrado" });
+    }
+
+    return res.json(user);
+  } catch (error) {
+    console.error("Erro ao buscar perfil do usuário:", error);
+    return res
+      .status(500)
+      .json({ message: "Erro ao buscar perfil do usuário" });
+  }
+};

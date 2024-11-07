@@ -1,116 +1,24 @@
-import { Request, Response, Router } from "express";
-import prisma from "../prismaClient";
-import { verifyTokenAndExtractUserId } from "../utils/jwtUtils";
-import { handleAsyncErrors } from "../utils/handleAsyncErrors";
+import { Router, Request, Response } from "express";
 import {
   getAllUsers,
   getUserById,
   createUser,
   registerUser,
   updateUser,
+  getProfile, // Função específica para o perfil
 } from "../controllers/userController";
+import { handleAsyncErrors } from "../utils/handleAsyncErrors";
 
 const router = Router();
 
-// Rota para listar todos os usuários
-router.get("/", handleAsyncErrors(getAllUsers));
-
-// Rota para obter um usuário por ID
-router.get("/:id", handleAsyncErrors(getUserById));
-
-// Rota para criar um novo usuário (sem hash de senha)
-router.post("/", handleAsyncErrors(createUser));
-
-// Rota para registro de usuário com hash de senha
-router.post("/register", handleAsyncErrors(registerUser));
-
 // Rota para obter o perfil do usuário logado
-router.get(
-  "/profile",
-  handleAsyncErrors(async (req: Request, res: Response) => {
-    try {
-      const token = req.headers["x-auth-token"];
+router.get("/profile", handleAsyncErrors(getProfile));
 
-      if (!token || Array.isArray(token)) {
-        return res
-          .status(401)
-          .json({ message: "Token não fornecido ou inválido" });
-      }
-
-      const userId = verifyTokenAndExtractUserId(token);
-
-      if (!userId) {
-        console.error("Token inválido, sem ID extraído.");
-        return res.status(401).json({ message: "Token inválido ou expirado" });
-      }
-
-      console.log("Buscando usuário com ID:", userId);
-
-      const user = await prisma.user.findUnique({
-        where: { id: userId },
-        include: { address: true },
-      });
-
-      if (!user) {
-        return res.status(404).json({ message: "Usuário não encontrado" });
-      }
-
-      console.log("Usuário encontrado:", user);
-      res.json(user);
-    } catch (error) {
-      console.error("Erro inesperado no endpoint /profile:", error);
-      res.status(500).json({ message: "Erro ao buscar perfil do usuário" });
-    }
-  })
-);
-
-// Rota para atualizar os dados do usuário autenticado
-router.put(
-  "/update",
-  handleAsyncErrors(async (req: Request, res: Response) => {
-    try {
-      const token = req.headers["x-auth-token"];
-
-      if (!token || Array.isArray(token)) {
-        return res
-          .status(401)
-          .json({ message: "Token não fornecido ou inválido" });
-      }
-
-      const userId = verifyTokenAndExtractUserId(token);
-
-      if (!userId) {
-        return res.status(401).json({ message: "Token inválido ou expirado" });
-      }
-
-      const { name, cpf, phone, address } = req.body;
-
-      console.log(`Atualizando usuário com ID: ${userId}`);
-
-      const updatedUser = await prisma.user.update({
-        where: { id: userId },
-        data: {
-          name,
-          cpf,
-          phone,
-          address: {
-            upsert: {
-              create: address, // Cria o endereço se não existir
-              update: address, // Atualiza o endereço existente
-            },
-          },
-        },
-        include: { address: true }, // Retorna o endereço atualizado
-      });
-
-      return res
-        .status(200)
-        .json({ message: "Usuário atualizado com sucesso", updatedUser });
-    } catch (error) {
-      console.error("Erro ao atualizar usuário:", error);
-      return res.status(500).json({ message: "Erro ao atualizar usuário" });
-    }
-  })
-);
+// Outras rotas...
+router.get("/", handleAsyncErrors(getAllUsers));
+router.get("/:id", handleAsyncErrors(getUserById));
+router.post("/", handleAsyncErrors(createUser));
+router.post("/register", handleAsyncErrors(registerUser));
+router.put("/update", handleAsyncErrors(updateUser));
 
 export default router;
