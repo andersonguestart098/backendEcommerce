@@ -1,13 +1,13 @@
-import { Router, Request, Response } from "express";
-import prisma from "../prismaClient"; // Certifique-se de importar corretamente
-import { verifyTokenAndExtractUserId } from "../utils/jwtUtils"; // Função que verifica e extrai o ID
+import { Request, Response, Router } from "express";
+import prisma from "../prismaClient";
+import { verifyTokenAndExtractUserId } from "../utils/jwtUtils";
 import { handleAsyncErrors } from "../utils/handleAsyncErrors";
 import {
   getAllUsers,
   getUserById,
   createUser,
   registerUser,
-  updateUser, // Importa a função de atualização
+  updateUser,
 } from "../controllers/userController";
 
 const router = Router();
@@ -29,15 +29,18 @@ router.get(
   "/profile",
   handleAsyncErrors(async (req: Request, res: Response) => {
     try {
-      const token = req.headers["x-auth-token"] as string;
+      const token = req.headers["x-auth-token"];
 
-      if (!token) {
-        return res.status(401).json({ message: "Token não fornecido" });
+      if (!token || Array.isArray(token)) {
+        return res
+          .status(401)
+          .json({ message: "Token não fornecido ou inválido" });
       }
 
       const userId = verifyTokenAndExtractUserId(token);
 
       if (!userId) {
+        console.error("Token inválido, sem ID extraído.");
         return res.status(401).json({ message: "Token inválido ou expirado" });
       }
 
@@ -45,7 +48,7 @@ router.get(
 
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: { address: true }, // Inclui o endereço associado
+        include: { address: true },
       });
 
       if (!user) {
@@ -61,14 +64,17 @@ router.get(
   })
 );
 
+// Rota para atualizar os dados do usuário autenticado
 router.put(
   "/update",
   handleAsyncErrors(async (req: Request, res: Response) => {
     try {
-      const token = req.headers["x-auth-token"] as string;
+      const token = req.headers["x-auth-token"];
 
-      if (!token) {
-        return res.status(401).json({ message: "Token não fornecido" });
+      if (!token || Array.isArray(token)) {
+        return res
+          .status(401)
+          .json({ message: "Token não fornecido ou inválido" });
       }
 
       const userId = verifyTokenAndExtractUserId(token);
