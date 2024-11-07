@@ -59,7 +59,6 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 app.use("/webhooks", webhookRoutes);
 
-// Middleware global de tratamento de erros
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof Error) {
     console.error("Erro Detalhado: ", {
