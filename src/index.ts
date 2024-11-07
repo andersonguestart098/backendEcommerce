@@ -1,4 +1,4 @@
-import express from "express";
+import express, { Request, Response, NextFunction } from "express";
 import http from "http";
 import { Server as SocketIOServer } from "socket.io";
 import cors from "cors";
@@ -30,6 +30,7 @@ const io = new SocketIOServer(server, {
   },
 });
 
+// Configuração do Socket.IO
 app.set("io", io);
 
 io.on("connection", (socket) => {
@@ -39,6 +40,7 @@ io.on("connection", (socket) => {
   });
 });
 
+// Middleware
 app.use(cors());
 app.use(express.json());
 
@@ -47,6 +49,7 @@ app.get("/", (req, res) => {
   res.send("Servidor Ecommerce Ativo...");
 });
 
+// Rotas
 app.use("/payment", paymentRoutes);
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
@@ -56,5 +59,17 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 app.use("/webhooks", webhookRoutes);
 
+// Middleware global de tratamento de erros
+app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
+  if (err instanceof Error) {
+    console.error("Erro: ", err.message);
+    res.status(500).json({ message: err.message });
+  } else {
+    console.error("Erro desconhecido: ", err);
+    res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
+// Inicialização do servidor
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => console.log(`Servidor rodando na porta ${PORT}`));

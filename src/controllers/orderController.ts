@@ -199,7 +199,7 @@ export const updateOrderStatus = async (
     "DELIVERED",
     "CANCELED",
   ];
-  
+
   if (!validStatuses.includes(status)) {
     res.status(400).json({ message: "Invalid status" });
     return;
@@ -224,5 +224,39 @@ export const updateOrderStatus = async (
   } catch (err) {
     console.error("Error updating order status:", err);
     res.status(500).json({ message: "Error updating order status" });
+  }
+};
+
+// Função para atualizar um usuário
+export const updateUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const authReq = req as AuthenticatedRequest;
+  const userId = authReq.user.id; // Usuário autenticado
+  const { name, cpf, phone, address } = req.body;
+
+  try {
+    // Atualiza apenas os campos permitidos
+    const updatedUser = await prisma.user.update({
+      where: { id: userId },
+      data: {
+        name,
+        cpf,
+        phone,
+        address: {
+          upsert: {
+            create: address,
+            update: address,
+          },
+        },
+      },
+      include: { address: true }, // Inclui o endereço atualizado
+    });
+
+    res.json({ message: "Usuário atualizado com sucesso", user: updatedUser });
+  } catch (error) {
+    console.error("Erro ao atualizar usuário:", error);
+    res.status(500).json({ message: "Erro ao atualizar usuário" });
   }
 };
