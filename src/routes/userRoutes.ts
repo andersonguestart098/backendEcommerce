@@ -32,14 +32,12 @@ router.get(
       const token = req.headers["x-auth-token"] as string;
 
       if (!token) {
-        console.error("Token não fornecido no header");
         return res.status(401).json({ message: "Token não fornecido" });
       }
 
       const userId = verifyTokenAndExtractUserId(token);
 
       if (!userId) {
-        console.error("Falha ao extrair o ID do usuário do token");
         return res.status(401).json({ message: "Token inválido ou expirado" });
       }
 
@@ -47,26 +45,66 @@ router.get(
 
       const user = await prisma.user.findUnique({
         where: { id: userId },
-        include: { address: true },
+        include: { address: true }, // Inclui o endereço associado
       });
 
       if (!user) {
-        console.warn(`Nenhum usuário encontrado com o ID: ${userId}`);
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
 
       console.log("Usuário encontrado:", user);
       res.json(user);
     } catch (error) {
-      console.error("Erro inesperado no endpoint /profile:", {
-        message: error instanceof Error ? error.message : "Erro desconhecido",
-        stack: error instanceof Error ? error.stack : null,
-      });
+      console.error("Erro inesperado no endpoint /profile:", error);
       res.status(500).json({ message: "Erro ao buscar perfil do usuário" });
     }
   })
 );
-// Rota para atualizar os dados do usuário autenticado
-router.put("/update", handleAsyncErrors(updateUser));
+
+router.put(
+  "/update",
+  handleAsyncErrors(async (req: Request, res: Response) => {
+    try {
+      const token = req.headers["x-auth-token"] as string;
+
+      if (!token) {
+        return res.status(401).json({ message: "Token não fornecido" });
+      }
+
+      const userId = verifyTokenAndExtractUserId(token);
+
+      if (!userId) {
+        return res.status(401).json({ message: "Token inválido ou expirado" });
+      }
+
+      const { name, cpf, phone, address } = req.body;
+
+      console.log(`Atualizando usuário com ID: ${userId}`);
+
+      const updatedUser = await prisma.user.update({
+        where: { id: userId },
+        data: {
+          name,
+          cpf,
+          phone,
+          address: {
+            upsert: {
+              create: address, // Cria o endereço se não existir
+              update: address, // Atualiza o endereço existente
+            },
+          },
+        },
+        include: { address: true }, // Retorna o endereço atualizado
+      });
+
+      return res
+        .status(200)
+        .json({ message: "Usuário atualizado com sucesso", updatedUser });
+    } catch (error) {
+      console.error("Erro ao atualizar usuário:", error);
+      return res.status(500).json({ message: "Erro ao atualizar usuário" });
+    }
+  })
+);
 
 export default router;
