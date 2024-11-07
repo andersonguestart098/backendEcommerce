@@ -62,7 +62,10 @@ app.use("/webhooks", webhookRoutes);
 // Middleware global de tratamento de erros
 app.use((err: unknown, req: Request, res: Response, next: NextFunction) => {
   if (err instanceof Error) {
-    console.error("Erro: ", err.message);
+    console.error("Erro Detalhado: ", {
+      message: err.message,
+      stack: err.stack,
+    });
     res.status(500).json({ message: err.message });
   } else {
     console.error("Erro desconhecido: ", err);

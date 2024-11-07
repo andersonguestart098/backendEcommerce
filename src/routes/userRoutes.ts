@@ -36,6 +36,10 @@ router.get(
 
       const userId = verifyTokenAndExtractUserId(token);
 
+      if (!userId) {
+        return res.status(401).json({ message: "Usuário não autenticado" });
+      }
+
       const user = await prisma.user.findUnique({
         where: { id: userId },
         include: { address: true },
@@ -47,8 +51,8 @@ router.get(
 
       res.json(user);
     } catch (error) {
-      console.error("Erro ao buscar o perfil do usuário:", error); // Log detalhado
-      res.status(500).json({ message: "Erro ao buscar o perfil do usuário" });
+      console.error("Erro no endpoint /profile:", error); // Log detalhado do erro
+      res.status(500).json({ message: "Erro ao buscar perfil do usuário" });
     }
   })
 );
