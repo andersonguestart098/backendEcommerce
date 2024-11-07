@@ -42,6 +42,11 @@ io.on("connection", (socket) => {
 app.use(cors());
 app.use(express.json());
 
+// Rota raiz para status do servidor
+app.get("/", (req, res) => {
+  res.send("Servidor Ecommerce Ativo...");
+});
+
 app.use("/payment", paymentRoutes);
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);

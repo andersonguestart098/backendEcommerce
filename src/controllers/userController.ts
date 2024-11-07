@@ -103,3 +103,39 @@ export const registerUser = async (
     res.status(500).json({ message: "Erro no servidor ao registrar usuário" });
   }
 };
+
+export const updateUser = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const { id } = req.params; // ID do usuário a ser atualizado
+  const { name, cpf, phone, address } = req.body; // Campos editáveis
+
+  try {
+    // Busca o usuário para verificar sua existência
+    const existingUser = await prisma.user.findUnique({ where: { id } });
+
+    if (!existingUser) {
+      res.status(404).json({ message: "Usuário não encontrado" });
+      return;
+    }
+
+    // Atualiza os dados do usuário
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        name,
+        cpf,
+        phone,
+        address: {
+          update: address, // Atualiza o endereço associado ao usuário
+        },
+      },
+    });
+
+    res.status(200).json(updatedUser);
+  } catch (err) {
+    console.error("Erro ao atualizar usuário:", err);
+    res.status(500).json({ message: "Erro ao atualizar usuário" });
+  }
+};
