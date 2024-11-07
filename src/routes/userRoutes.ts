@@ -28,23 +28,28 @@ router.post("/register", handleAsyncErrors(registerUser));
 router.get(
   "/profile",
   handleAsyncErrors(async (req: Request, res: Response) => {
-    const token = req.headers["x-auth-token"] as string;
-    if (!token) {
-      return res.status(401).json({ message: "Token não fornecido" });
+    try {
+      const token = req.headers["x-auth-token"] as string;
+      if (!token) {
+        return res.status(401).json({ message: "Token não fornecido" });
+      }
+
+      const userId = verifyTokenAndExtractUserId(token);
+
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: { address: true },
+      });
+
+      if (!user) {
+        return res.status(404).json({ message: "Usuário não encontrado" });
+      }
+
+      res.json(user);
+    } catch (error) {
+      console.error("Erro ao buscar o perfil do usuário:", error); // Log detalhado
+      res.status(500).json({ message: "Erro ao buscar o perfil do usuário" });
     }
-
-    const userId = verifyTokenAndExtractUserId(token);
-
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: { address: true },
-    });
-
-    if (!user) {
-      return res.status(404).json({ message: "Usuário não encontrado" });
-    }
-
-    res.json(user);
   })
 );
 
