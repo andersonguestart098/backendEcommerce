@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "@prisma/client";
+import { verifyTokenAndExtractUserId } from "../utils/jwtUtils";
 
 const prisma = new PrismaClient();
 
@@ -107,35 +108,45 @@ export const registerUser = async (
 export const updateUser = async (
   req: Request,
   res: Response
-): Promise<void> => {
-  const { id } = req.params; // ID do usuário a ser atualizado
-  const { name, cpf, phone, address } = req.body; // Campos editáveis
-
+): Promise<Response<any>> => {
   try {
-    // Busca o usuário para verificar sua existência
-    const existingUser = await prisma.user.findUnique({ where: { id } });
+    // Captura o token do header
+    const token =
+      typeof req.headers["x-auth-token"] === "string"
+        ? req.headers["x-auth-token"]
+        : req.headers.authorization?.split(" ")[1];
 
-    if (!existingUser) {
-      res.status(404).json({ message: "Usuário não encontrado" });
-      return;
+    if (!token) {
+      return res.status(401).json({ message: "Token não fornecido" });
     }
 
-    // Atualiza os dados do usuário
+    const userId = verifyTokenAndExtractUserId(token);
+
+    if (!userId) {
+      return res.status(401).json({ message: "Token inválido ou expirado" });
+    }
+
+    const { name, cpf, phone, address } = req.body;
+
+    console.log(`Atualizando usuário com ID: ${userId}`);
+
     const updatedUser = await prisma.user.update({
-      where: { id },
+      where: { id: userId },
       data: {
         name,
         cpf,
         phone,
         address: {
-          update: address, // Atualiza o endereço associado ao usuário
+          update: address,
         },
       },
     });
 
-    res.status(200).json(updatedUser);
-  } catch (err) {
-    console.error("Erro ao atualizar usuário:", err);
-    res.status(500).json({ message: "Erro ao atualizar usuário" });
+    return res
+      .status(200)
+      .json({ message: "Usuário atualizado com sucesso", updatedUser });
+  } catch (error) {
+    console.error("Erro ao atualizar usuário:", error);
+    return res.status(500).json({ message: "Erro ao atualizar usuário" });
   }
 };
