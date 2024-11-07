@@ -30,11 +30,18 @@ router.get(
   handleAsyncErrors(async (req: Request, res: Response) => {
     try {
       const token = req.headers["x-auth-token"] as string;
+
       if (!token) {
+        console.error("Token não fornecido no header");
         return res.status(401).json({ message: "Token não fornecido" });
       }
 
       const userId = verifyTokenAndExtractUserId(token);
+
+      if (!userId) {
+        console.error("Falha ao extrair o ID do usuário do token");
+        return res.status(401).json({ message: "Token inválido ou expirado" });
+      }
 
       console.log("Buscando usuário com ID:", userId);
 
@@ -44,17 +51,21 @@ router.get(
       });
 
       if (!user) {
+        console.warn(`Nenhum usuário encontrado com o ID: ${userId}`);
         return res.status(404).json({ message: "Usuário não encontrado" });
       }
 
+      console.log("Usuário encontrado:", user);
       res.json(user);
     } catch (error) {
-      console.error("Erro no endpoint /profile:", error);
+      console.error("Erro inesperado no endpoint /profile:", {
+        message: error instanceof Error ? error.message : "Erro desconhecido",
+        stack: error instanceof Error ? error.stack : null,
+      });
       res.status(500).json({ message: "Erro ao buscar perfil do usuário" });
     }
   })
 );
-
 // Rota para atualizar os dados do usuário autenticado
 router.put("/update", handleAsyncErrors(updateUser));
 
