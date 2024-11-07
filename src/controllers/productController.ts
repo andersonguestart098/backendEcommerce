@@ -1,17 +1,18 @@
-import { Request, Response } from 'express';
-import { PrismaClient } from '@prisma/client';
-import cloudinary from 'cloudinary';
-import multer from 'multer';
+import { Request, Response } from "express";
+import { PrismaClient } from "@prisma/client";
+import cloudinary from "cloudinary";
+import multer from "multer";
+import fs from "fs/promises"; // Para remover arquivos temporários
 
 // Configure Multer for multiple file uploads
 const storage = multer.diskStorage({});
 export const upload = multer({ storage });
 
-// Function to handle multiple file fields (do not export `.fields()` directly)
+// Function to handle multiple file fields
 export const createUploadMiddleware = () => {
   return upload.fields([
-    { name: 'images', maxCount: 5 }, // Ajuste para 'images'
-    { name: 'colors', maxCount: 5 }  // Mantenha 'colors'
+    { name: "images", maxCount: 5 }, // Campo para imagens principais
+    { name: "colors", maxCount: 5 }, // Campo para imagens de cores
   ]);
 };
 
@@ -28,17 +29,20 @@ cloudinary.v2.config({
 // Function to upload an image to Cloudinary in a specific folder
 const uploadImageToCloudinary = async (filePath: string, folder: string) => {
   try {
-    const result = await cloudinary.v2.uploader.upload(filePath, {
-      folder,  // Save in the specified directory
-    });
+    const result = await cloudinary.v2.uploader.upload(filePath, { folder });
+    await fs.unlink(filePath); // Remove o arquivo local após o upload
     return result.secure_url;
   } catch (error) {
-    console.error('Error uploading to Cloudinary:', error);
-    throw new Error('Image upload failed');
+    console.error("Error uploading to Cloudinary:", error);
+    throw new Error("Image upload failed");
   }
 };
 
-export const getAllProducts = async (req: Request, res: Response): Promise<void> => {
+// Get all products with optional filters
+export const getAllProducts = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { search, color, minPrice, maxPrice } = req.query;
 
   try {
@@ -52,7 +56,7 @@ export const getAllProducts = async (req: Request, res: Response): Promise<void>
     if (search) {
       query.where.name = {
         contains: String(search),
-        mode: 'insensitive',
+        mode: "insensitive",
       };
     }
 
@@ -61,7 +65,7 @@ export const getAllProducts = async (req: Request, res: Response): Promise<void>
         some: {
           name: {
             contains: String(color),
-            mode: 'insensitive',
+            mode: "insensitive",
           },
         },
       };
@@ -83,67 +87,85 @@ export const getAllProducts = async (req: Request, res: Response): Promise<void>
     const products = await prisma.product.findMany(query);
     res.json(products);
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching products', error: err });
+    res.status(500).json({ message: "Error fetching products", error: err });
   }
 };
 
-// Fetch a product by ID
-export const getProductById = async (req: Request, res: Response): Promise<void> => {
+// Get product by ID
+export const getProductById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { id } = req.params;
+
   try {
     const product = await prisma.product.findUnique({
       where: { id },
-      include: { colors: true }, // Include colors when fetching by ID
+      include: { colors: true, paymentOptions: true }, // Include related data
     });
+
     if (!product) {
-      res.status(404).json({ message: 'Product not found' });
+      res.status(404).json({ message: "Product not found" });
     } else {
       res.json(product);
     }
   } catch (err) {
-    res.status(500).json({ message: 'Error fetching product', error: err });
+    res.status(500).json({ message: "Error fetching product", error: err });
   }
 };
 
-
 // Create a new product
-export const createProduct = async (req: Request, res: Response): Promise<void> => {
+export const createProduct = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const {
-    name, price, description, discount, paymentOptions,
-    colorNames, metersPerBox, weightPerBox, boxDimensions,
-    materialType, freightClass
+    name,
+    price,
+    description,
+    discount,
+    paymentOptions,
+    colorNames,
+    metersPerBox,
+    weightPerBox,
+    boxDimensions,
+    materialType,
+    freightClass,
   } = req.body;
 
   try {
     const files = req.files as { [fieldname: string]: Express.Multer.File[] };
 
-    // Check if main images are sent
-    if (!files || !files['images'] || files['images'].length === 0) {
-      res.status(400).json({ message: 'Main images not sent' });
+    if (!files || !files["images"] || files["images"].length === 0) {
+      res.status(400).json({ message: "Main images not sent" });
       return;
     }
 
-    // Validate color images and names
-    if (!files['colors'] || files['colors'].length === 0 || !colorNames || colorNames.length === 0) {
-      res.status(400).json({ message: 'No color or color name sent' });
+    if (
+      !files["colors"] ||
+      !colorNames ||
+      files["colors"].length !== colorNames.length
+    ) {
+      res.status(400).json({
+        message: "Color images and names must match and cannot be empty",
+      });
       return;
     }
 
-    const imageFiles = files['images'];
-    const colorFiles = files['colors'];
-    const colorNamesArray = Array.isArray(colorNames) ? colorNames : [colorNames];
+    const imageFiles = files["images"];
+    const colorFiles = files["colors"];
+    const colorNamesArray = Array.isArray(colorNames)
+      ? colorNames
+      : [colorNames];
 
-    if (colorFiles.length !== colorNamesArray.length) {
-      res.status(400).json({ message: 'The number of color images and names must match.' });
-      return;
-    }
-
-    // Upload main images to Cloudinary
+    // Upload main images
     const imageUrls = await Promise.all(
-      imageFiles.map((file: Express.Multer.File) => uploadImageToCloudinary(file.path, 'product_images'))
+      imageFiles.map((file) =>
+        uploadImageToCloudinary(file.path, "product_images")
+      )
     );
 
-    // Create the Product first
+    // Create product
     const newProduct = await prisma.product.create({
       data: {
         name,
@@ -159,28 +181,26 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       },
     });
 
-    // Now create the PaymentOptions separately and link them to the Product
-    if (Array.isArray(paymentOptions)) {
-      await Promise.all(
-        paymentOptions.map(async (option: string) => {
-          await prisma.paymentOption.create({
-            data: {
-              option, // Use the option field correctly
-              productId: newProduct.id, // Relaciona ao ID do produto recém-criado
-            },
-          });
-        })
-      );
+    // Add payment options
+    if (paymentOptions && Array.isArray(paymentOptions)) {
+      await prisma.paymentOption.createMany({
+        data: paymentOptions.map((option: string) => ({
+          option,
+          productId: newProduct.id,
+        })),
+      });
     }
 
-    // Upload color images and save in the database
+    // Upload color images
     await Promise.all(
-      colorFiles.map(async (file: Express.Multer.File, index: number) => {
-        const colorImageUrl = await uploadImageToCloudinary(file.path, 'pisoColors');
-        const colorName = colorNamesArray[index];
+      colorFiles.map(async (file, index) => {
+        const colorImageUrl = await uploadImageToCloudinary(
+          file.path,
+          "pisoColors"
+        );
         await prisma.color.create({
           data: {
-            name: colorName,
+            name: colorNamesArray[index],
             image: colorImageUrl,
             productId: newProduct.id,
           },
@@ -188,7 +208,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
       })
     );
 
-    // Fetch and return the created product with associated colors and payment options
+    // Return created product with relations
     const updatedProduct = await prisma.product.findUnique({
       where: { id: newProduct.id },
       include: { colors: true, paymentOptions: true },
@@ -196,7 +216,7 @@ export const createProduct = async (req: Request, res: Response): Promise<void> 
 
     res.status(201).json(updatedProduct);
   } catch (err) {
-    console.error('Error creating product:', err);
-    res.status(500).json({ message: 'Error creating product', error: err });
+    console.error("Error creating product:", err);
+    res.status(500).json({ message: "Error creating product", error: err });
   }
 };
