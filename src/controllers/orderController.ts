@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { emitOrderStatusUpdate } from "../utils/events";
+import { verifyTokenAndExtractUserId } from "../utils/jwtUtils";
 
 const mercadopago = require("mercadopago");
 
@@ -227,36 +228,45 @@ export const updateOrderStatus = async (
   }
 };
 
-// Função para atualizar um usuário
 export const updateUser = async (
   req: Request,
   res: Response
-): Promise<void> => {
-  const authReq = req as AuthenticatedRequest;
-  const userId = authReq.user.id; // Usuário autenticado
-  const { name, cpf, phone, address } = req.body;
-
+): Promise<Response<any>> => {
+  // Tipo de retorno ajustado
   try {
-    // Atualiza apenas os campos permitidos
+    const token = req.headers["x-auth-token"] as string;
+
+    if (!token) {
+      return res.status(401).json({ message: "Token não fornecido" });
+    }
+
+    const userId = verifyTokenAndExtractUserId(token);
+
+    if (!userId) {
+      return res.status(401).json({ message: "Token inválido ou expirado" });
+    }
+
+    const { name, cpf, phone, address } = req.body;
+
+    console.log(`Atualizando usuário com ID: ${userId}`);
+
     const updatedUser = await prisma.user.update({
-      where: { id: userId },
+      where: { id: userId }, // userId garantido
       data: {
         name,
         cpf,
         phone,
         address: {
-          upsert: {
-            create: address,
-            update: address,
-          },
+          update: address, // Atualizar o endereço associado
         },
       },
-      include: { address: true }, // Inclui o endereço atualizado
     });
 
-    res.json({ message: "Usuário atualizado com sucesso", user: updatedUser });
+    return res
+      .status(200)
+      .json({ message: "Usuário atualizado com sucesso", updatedUser });
   } catch (error) {
     console.error("Erro ao atualizar usuário:", error);
-    res.status(500).json({ message: "Erro ao atualizar usuário" });
+    return res.status(500).json({ message: "Erro ao atualizar usuário" });
   }
 };
