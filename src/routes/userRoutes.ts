@@ -1,16 +1,24 @@
-import { Router } from "express";
+import { Router, Request, Response } from "express";
 import {
   getAllUsers,
   getUserById,
   createUser,
   registerUser,
+  updateUser,
+  getProfile, // Função específica para o perfil
 } from "../controllers/userController";
+import { handleAsyncErrors } from "../utils/handleAsyncErrors";
 
 const router = Router();
 
-router.get("/", getAllUsers); // Rota para listar todos os usuários
-router.get("/:id", getUserById); // Rota para obter um usuário por ID
-router.post("/", createUser); // Rota para criar um novo usuário (sem hash de senha)
-router.post("/register", registerUser); // Rota para registro de usuário com hash de senha
+// Rota para obter o perfil do usuário logado
+router.get("/profile", handleAsyncErrors(getProfile));
+
+// Outras rotas...
+router.get("/", handleAsyncErrors(getAllUsers));
+router.get("/:id", handleAsyncErrors(getUserById));
+router.post("/", handleAsyncErrors(createUser));
+router.post("/register", handleAsyncErrors(registerUser));
+router.put("/update", handleAsyncErrors(updateUser));
 
 export default router;

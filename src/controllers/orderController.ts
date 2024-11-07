@@ -2,6 +2,7 @@
 import { Request, Response } from "express";
 import { PrismaClient } from "@prisma/client";
 import { emitOrderStatusUpdate } from "../utils/events";
+import { verifyTokenAndExtractUserId } from "../utils/jwtUtils";
 
 const mercadopago = require("mercadopago");
 
@@ -180,7 +181,6 @@ export const createOrder = async (
   }
 };
 
-// Função para atualizar o status do pedido
 export const updateOrderStatus = async (
   req: Request,
   res: Response
@@ -199,16 +199,16 @@ export const updateOrderStatus = async (
     "DELIVERED",
     "CANCELED",
   ];
-  
+
   if (!validStatuses.includes(status)) {
     res.status(400).json({ message: "Invalid status" });
     return;
   }
 
-  if (userRole !== "admin") {
-    res
-      .status(403)
-      .json({ message: "Access denied: only admins can change order status" });
+  if (userRole !== "admin" && status === "CANCELED") {
+    res.status(403).json({
+      message: "Access denied: only admins can cancel orders",
+    });
     return;
   }
 
@@ -224,5 +224,48 @@ export const updateOrderStatus = async (
   } catch (err) {
     console.error("Error updating order status:", err);
     res.status(500).json({ message: "Error updating order status" });
+  }
+};
+
+export const updateUser = async (
+  req: Request,
+  res: Response
+): Promise<Response<any>> => {
+  // Tipo de retorno ajustado
+  try {
+    const token = req.headers["x-auth-token"] as string;
+
+    if (!token) {
+      return res.status(401).json({ message: "Token não fornecido" });
+    }
+
+    const userId = verifyTokenAndExtractUserId(token);
+
+    if (!userId) {
+      return res.status(401).json({ message: "Token inválido ou expirado" });
+    }
+
+    const { name, cpf, phone, address } = req.body;
+
+    console.log(`Atualizando usuário com ID: ${userId}`);
+
+    const updatedUser = await prisma.user.update({
+      where: { id: userId }, // userId garantido
+      data: {
+        name,
+        cpf,
+        phone,
+        address: {
+          update: address, // Atualizar o endereço associado
+        },
+      },
+    });
+
+    return res
+      .status(200)
+      .json({ message: "Usuário atualizado com sucesso", updatedUser });
+  } catch (error) {
+    console.error("Erro ao atualizar usuário:", error);
+    return res.status(500).json({ message: "Erro ao atualizar usuário" });
   }
 };
