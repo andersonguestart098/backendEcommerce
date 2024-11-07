@@ -25,7 +25,7 @@ const io = new SocketIOServer(server, {
       "https://ecommerce-66dx8gduh-andersonguestart098s-projects.vercel.app",
       "https://demo-anderson-2ikyf9gm0-andersonguestart098s-projects.vercel.app",
     ],
-    methods: ["GET", "POST"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,
   },
 });
@@ -41,7 +41,19 @@ io.on("connection", (socket) => {
 });
 
 // Middleware
-app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "http://localhost:3000",
+      "http://localhost:3001",
+      "https://ecommerce-66dx8gduh-andersonguestart098s-projects.vercel.app",
+      "https://demo-anderson-2ikyf9gm0-andersonguestart098s-projects.vercel.app",
+    ],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Rota raiz para status do servidor
