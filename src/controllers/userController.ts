@@ -134,8 +134,20 @@ export const updateUser = async (
         phone,
         address: {
           upsert: {
-            create: address,
-            update: address,
+            create: {
+              street: address.street,
+              city: address.city,
+              state: address.state,
+              postalCode: address.postalCode,
+              country: address.country,
+            },
+            update: {
+              street: address.street,
+              city: address.city,
+              state: address.state,
+              postalCode: address.postalCode,
+              country: address.country,
+            },
           },
         },
       },
