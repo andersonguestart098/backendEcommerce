@@ -181,7 +181,6 @@ export const createOrder = async (
   }
 };
 
-// Função para atualizar o status do pedido
 export const updateOrderStatus = async (
   req: Request,
   res: Response
@@ -206,10 +205,10 @@ export const updateOrderStatus = async (
     return;
   }
 
-  if (userRole !== "admin") {
-    res
-      .status(403)
-      .json({ message: "Access denied: only admins can change order status" });
+  if (userRole !== "admin" && status === "CANCELED") {
+    res.status(403).json({
+      message: "Access denied: only admins can cancel orders",
+    });
     return;
   }
 
