@@ -137,9 +137,19 @@ export const updateUser = async (
         cpf,
         phone,
         address: {
-          update: address,
+          upsert: {
+            create: address, // Cria um novo endereço se não existir
+            update: {
+              street: address.street,
+              city: address.city,
+              state: address.state,
+              postalCode: address.postalCode,
+              country: address.country,
+            }, // Atualiza o endereço existente
+          },
         },
       },
+      include: { address: true },
     });
 
     return res
