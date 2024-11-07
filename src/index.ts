@@ -40,7 +40,13 @@ io.on("connection", (socket) => {
   });
 });
 
-// Middleware
+// Middleware de log de requisições
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
+// Middleware CORS
 app.use(
   cors({
     origin: [
@@ -71,6 +77,7 @@ app.use("/orders", orderRoutes);
 app.use("/shipping", shippingRoutes);
 app.use("/webhooks", webhookRoutes);
 
+// Middleware de tratamento de erros
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   console.error("Erro capturado pelo middleware:", err);
   res
