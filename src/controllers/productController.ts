@@ -202,7 +202,7 @@ export const createProduct = async (
           data: {
             name: colorNamesArray[index],
             image: colorImageUrl,
-            imageRefIndex: index, // Associando corretamente o índice da imagem principal
+            imageRefIndex: index, // Garante que imageRefIndex nunca seja null
             productId: newProduct.id,
           },
         });
@@ -219,4 +219,4 @@ export const createProduct = async (
   } catch (error) {
     res.status(500).json({ message: "Error creating product", error });
   }
-}; // <-- Chave de fechamento adicionada aqui para a função `createProduct`
+};
