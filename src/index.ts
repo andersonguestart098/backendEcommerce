@@ -33,7 +33,7 @@ const io = new SocketIOServer(server, {
 // Configuração do Socket.IO
 app.set("io", io);
 
-io.on("connection", (socket) => {
+io.on("connection", (socket: any) => {
   console.log("Novo cliente conectado");
   socket.on("disconnect", () => {
     console.log("Cliente desconectado");
