@@ -22,7 +22,7 @@ const io = new SocketIOServer(server, {
       "http://localhost:3000",
       "http://localhost:3001",
       "https://ecommerce-66dx8gduh-andersonguestart098s-projects.vercel.app",
-      "https://demo-anderson-2ikyf9gm0-andersonguestart098s-projects.vercel.app",
+      "https://ecommerce-59g1hkjob-andersonguestart098s-projects.vercel.app",
     ],
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     credentials: true,

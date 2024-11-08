@@ -54,6 +54,7 @@ model Color {
   image     String
   productId String   @db.ObjectId
   product   Product? @relation(fields: [productId], references: [id])
+  imageRefIndex  Int
 }
 
 model PaymentOption {

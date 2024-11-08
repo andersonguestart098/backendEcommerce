@@ -191,7 +191,7 @@ export const createProduct = async (
       });
     }
 
-    // Upload color images
+    // Upload color images e associar imageRefIndex corretamente
     await Promise.all(
       colorFiles.map(async (file, index) => {
         const colorImageUrl = await uploadImageToCloudinary(
@@ -202,21 +202,21 @@ export const createProduct = async (
           data: {
             name: colorNamesArray[index],
             image: colorImageUrl,
+            imageRefIndex: index, // Associando corretamente o índice da imagem principal
             productId: newProduct.id,
           },
         });
       })
     );
 
-    // Return created product with relations
+    // Retorne o produto criado com todas as relações
     const updatedProduct = await prisma.product.findUnique({
       where: { id: newProduct.id },
       include: { colors: true, paymentOptions: true },
     });
 
     res.status(201).json(updatedProduct);
-  } catch (err) {
-    console.error("Error creating product:", err);
-    res.status(500).json({ message: "Error creating product", error: err });
+  } catch (error) {
+    res.status(500).json({ message: "Error creating product", error });
   }
-};
+}; // <-- Chave de fechamento adicionada aqui para a função `createProduct`
