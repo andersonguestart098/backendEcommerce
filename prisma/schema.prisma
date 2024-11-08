@@ -54,7 +54,7 @@ model Color {
   image     String
   productId String   @db.ObjectId
   product   Product? @relation(fields: [productId], references: [id])
-  imageRefIndex  Int
+  imageRefIndex Int      @default(0) // Define 0 como valor padrão
 }
 
 model PaymentOption {

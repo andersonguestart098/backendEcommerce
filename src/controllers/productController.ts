@@ -114,7 +114,6 @@ export const getProductById = async (
   }
 };
 
-// Create a new product
 export const createProduct = async (
   req: Request,
   res: Response
