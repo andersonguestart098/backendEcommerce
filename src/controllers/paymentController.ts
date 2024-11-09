@@ -106,6 +106,8 @@ export const createTransparentPayment = async (
     
 
     const response = await mercadopago.payment.create(paymentData);
+    console.log("Dados enviados para o Mercado Pago:", paymentData);
+
 
 if (
   payment_method_id === "bolbradesco" &&
