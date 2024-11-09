@@ -15,7 +15,9 @@ export const createTransparentPayment = async (
   res: Response
 ): Promise<void> => {
   console.log("Iniciando criação de pagamento...");
-  console.log("Dados recebidos:", req.body);
+
+  // Log dos dados recebidos no backend
+  console.log("Dados recebidos no backend:", req.body); 
 
   const {
     transaction_amount,
@@ -147,3 +149,4 @@ export const createTransparentPayment = async (
     });
   }
 };
+
