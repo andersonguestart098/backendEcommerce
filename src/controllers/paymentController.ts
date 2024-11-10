@@ -17,14 +17,14 @@ export const createTransparentPayment = async (
   console.log("Iniciando criação de pagamento...");
 
   // Log dos dados recebidos no backend
-  console.log("Dados recebidos no backend:", req.body); 
+  console.log("Dados recebidos no backend:", req.body);
 
   const {
     transaction_amount,
     payment_method_id,
     installments = 1,
     token,
-    items,
+    products, // produtos recebidos do frontend
     userId,
     device_id = "default_device_id",
   } = req.body;
@@ -50,6 +50,17 @@ export const createTransparentPayment = async (
   }
 
   try {
+    if (
+      !products ||
+      products.some((product: any) => !product.productId || !product.quantity)
+    ) {
+      console.error("Produtos inválidos recebidos:", products);
+      res
+        .status(400)
+        .json({ error: "Produtos inválidos. Verifique productId e quantity." });
+      return;
+    }
+
     // Busca o usuário no banco de dados
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -71,17 +82,27 @@ export const createTransparentPayment = async (
       },
     };
 
-    const description =
-      items && items.length > 0 ? items[0].description : "Compra de produtos";
-
-    // Cria o pedido no banco de dados e recupera o ID do pedido
     const order = await prisma.order.create({
       data: {
         userId,
         totalPrice: transaction_amount,
         status: "PENDING",
+        products: {
+          create: products.map((product: any) => ({
+            productId: product.productId,
+            quantity: product.quantity,
+          })),
+        },
+      },
+      include: {
+        products: { include: { product: true } }, // Inclui informações detalhadas do produto
       },
     });
+
+    const description =
+      products && products.length > 0
+        ? products.map((p: any) => p.productId).join(", ")
+        : "Compra de produtos";
 
     // Dados do pagamento com `order.id` em `external_reference`
     const paymentData: any = {
@@ -145,8 +166,7 @@ export const createTransparentPayment = async (
     console.error("Erro ao criar pagamento:", error.response?.data || error);
     res.status(500).json({
       message: "Erro ao criar pagamento",
-      error: error.response?.data,
+      error: error.response?.data || error.message,
     });
   }
 };
-
