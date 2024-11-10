@@ -47,6 +47,8 @@ export const createTransparentPayment = async (
     return;
   }
 
+  console.log("Token capturado no backend:", token);
+
   try {
     // Validação dos produtos
     if (
@@ -60,6 +62,8 @@ export const createTransparentPayment = async (
       return;
     }
 
+    console.log("Produtos validados:", products);
+
     // Busca o usuário no banco de dados
     const user = await prisma.user.findUnique({
       where: { id: userId },
@@ -71,6 +75,8 @@ export const createTransparentPayment = async (
       return;
     }
 
+    console.log("Usuário encontrado:", user);
+
     const payer = {
       email: user.email,
       first_name: user.name.split(" ")[0] || "Nome",
@@ -80,6 +86,8 @@ export const createTransparentPayment = async (
         number: user.cpf || "00000000000",
       },
     };
+
+    console.log("Dados do pagador (payer):", payer);
 
     // Cria a ordem no banco de dados
     const order = await prisma.order.create({
@@ -96,9 +104,11 @@ export const createTransparentPayment = async (
         },
       },
       include: {
-        products: { include: { product: true } }, // Inclui detalhes dos produtos relacionados
+        products: { include: { product: true } },
       },
     });
+
+    console.log("Pedido criado com sucesso no banco:", order);
 
     const description =
       products && products.length > 0
@@ -125,8 +135,11 @@ export const createTransparentPayment = async (
       paymentData.installments = installments;
     }
 
+    console.log("Enviando dados de pagamento para Mercado Pago:", paymentData);
+
     const response = await mercadopago.payment.create(paymentData);
-    console.log("Dados enviados para o Mercado Pago:", paymentData);
+
+    console.log("Resposta do Mercado Pago:", response.body);
 
     if (
       payment_method_id === "bolbradesco" &&
