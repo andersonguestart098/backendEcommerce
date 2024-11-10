@@ -37,7 +37,7 @@ export const createTransparentPayment = async (
   });
 
   try {
-    // Validação inicial
+    // Validação inicial de campos obrigatórios
     if (
       !transaction_amount ||
       transaction_amount <= 0.5 ||
@@ -50,6 +50,7 @@ export const createTransparentPayment = async (
       );
     }
 
+    // Validação dos produtos
     if (
       !products ||
       !Array.isArray(products) ||
@@ -67,7 +68,7 @@ export const createTransparentPayment = async (
 
     console.log("Validações iniciais concluídas.");
 
-    // Busca o usuário
+    // Busca o usuário no banco de dados
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { address: true },
@@ -129,9 +130,11 @@ export const createTransparentPayment = async (
       }
       paymentData.token = token;
       paymentData.installments = installments;
+
+      console.log("Token adicionado ao pagamento:", paymentData.token);
     }
 
-    console.log("Enviando dados de pagamento para Mercado Pago:", JSON.stringify(paymentData, null, 2));
+    console.log("Payment data final enviado ao Mercado Pago:", JSON.stringify(paymentData, null, 2));
 
     // Processamento do pagamento
     const response = await mercadopago.payment.create(paymentData);
@@ -139,14 +142,26 @@ export const createTransparentPayment = async (
 
     console.log("Resposta Mercado Pago:", JSON.stringify(paymentResponse, null, 2));
 
+    // Verificação do status da resposta
+    if (!paymentResponse || !paymentResponse.status) {
+      throw new Error("Resposta do Mercado Pago inválida ou incompleta.");
+    }
+
     res.status(200).json({
       message: "Pagamento processado com sucesso",
       status: paymentResponse.status,
       id: paymentResponse.id,
     });
-
   } catch (error: any) {
     console.error("Erro ao processar pagamento:", error.response?.data || error.message);
+
+    // Detalhamento do erro de comunicação com a API
+    if (error.response) {
+      console.error("Erro de resposta do Mercado Pago:", error.response.data);
+    } else {
+      console.error("Erro interno:", error.message);
+    }
+
     res.status(500).json({
       message: "Erro ao processar pagamento",
       error: error.response?.data || error.message,
