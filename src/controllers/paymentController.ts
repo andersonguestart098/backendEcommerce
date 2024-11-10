@@ -16,7 +16,6 @@ export const createTransparentPayment = async (
 ): Promise<void> => {
   console.log("===== Iniciando criação de pagamento =====");
 
-  // Log dos dados recebidos no backend
   console.log("Dados recebidos no backend:", JSON.stringify(req.body, null, 2));
 
   const {
@@ -24,7 +23,7 @@ export const createTransparentPayment = async (
     payment_method_id,
     installments = 1,
     token,
-    products, // produtos recebidos do frontend
+    products,
     userId,
     device_id = "default_device_id",
   } = req.body;
@@ -50,10 +49,17 @@ export const createTransparentPayment = async (
   console.log("Token capturado no backend:", token);
 
   try {
-    // Validação dos produtos
     if (
       !products ||
-      products.some((product: any) => !product.productId || !product.unit_price || !product.quantity)
+      !Array.isArray(products) ||
+      products.some(
+        (product: any) =>
+          !product.productId ||
+          typeof product.unit_price !== "number" ||
+          product.unit_price <= 0 ||
+          !product.quantity ||
+          product.quantity <= 0
+      )
     ) {
       console.error("Erro: Produtos inválidos recebidos:", products);
       res.status(400).json({
@@ -116,7 +122,6 @@ export const createTransparentPayment = async (
         ? products.map((p: any) => p.description || p.productId).join(", ")
         : "Compra de produtos";
 
-    // Dados do pagamento com `order.id` em `external_reference`
     const paymentData: any = {
       transaction_amount,
       description,
@@ -136,7 +141,10 @@ export const createTransparentPayment = async (
       paymentData.installments = installments;
     }
 
-    console.log("Enviando dados de pagamento para Mercado Pago:", JSON.stringify(paymentData, null, 2));
+    console.log(
+      "Enviando dados de pagamento para Mercado Pago:",
+      JSON.stringify(paymentData, null, 2)
+    );
 
     const response = await mercadopago.payment.create(paymentData);
 
@@ -178,7 +186,10 @@ export const createTransparentPayment = async (
       });
     }
   } catch (error: any) {
-    console.error("Erro ao criar pagamento:", error.response?.data || error.message);
+    console.error(
+      "Erro ao criar pagamento:",
+      JSON.stringify(error.response?.data || error.message, null, 2)
+    );
     res.status(500).json({
       message: "Erro ao criar pagamento",
       error: error.response?.data || error.message,
