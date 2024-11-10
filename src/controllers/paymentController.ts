@@ -14,10 +14,10 @@ export const createTransparentPayment = async (
   req: Request,
   res: Response
 ): Promise<void> => {
-  console.log("Iniciando criação de pagamento...");
+  console.log("===== Iniciando criação de pagamento =====");
 
   // Log dos dados recebidos no backend
-  console.log("Dados recebidos no backend:", req.body);
+  console.log("Dados recebidos no backend:", JSON.stringify(req.body, null, 2));
 
   const {
     transaction_amount,
@@ -37,7 +37,7 @@ export const createTransparentPayment = async (
     (payment_method_id === "credit_card" && !token) ||
     !userId
   ) {
-    console.error("Dados obrigatórios ausentes ou incorretos:", {
+    console.error("Erro: Dados obrigatórios ausentes ou incorretos:", {
       transaction_amount,
       payment_method_id,
       token,
@@ -55,7 +55,7 @@ export const createTransparentPayment = async (
       !products ||
       products.some((product: any) => !product.productId || !product.unit_price || !product.quantity)
     ) {
-      console.error("Produtos inválidos recebidos:", products);
+      console.error("Erro: Produtos inválidos recebidos:", products);
       res.status(400).json({
         error: "Produtos inválidos. Verifique productId, unit_price e quantity.",
       });
@@ -71,6 +71,7 @@ export const createTransparentPayment = async (
     });
 
     if (!user) {
+      console.error("Erro: Usuário não encontrado para userId:", userId);
       res.status(404).json({ error: "Usuário não encontrado" });
       return;
     }
@@ -126,7 +127,7 @@ export const createTransparentPayment = async (
       },
       statement_descriptor: "Seu E-commerce",
       notification_url:
-        "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
+        "https://seu-ecommerce.com/webhooks/mercado-pago/webhook",
       external_reference: order.id,
     };
 
@@ -135,11 +136,11 @@ export const createTransparentPayment = async (
       paymentData.installments = installments;
     }
 
-    console.log("Enviando dados de pagamento para Mercado Pago:", paymentData);
+    console.log("Enviando dados de pagamento para Mercado Pago:", JSON.stringify(paymentData, null, 2));
 
     const response = await mercadopago.payment.create(paymentData);
 
-    console.log("Resposta do Mercado Pago:", response.body);
+    console.log("Resposta do Mercado Pago:", JSON.stringify(response.body, null, 2));
 
     if (
       payment_method_id === "bolbradesco" &&
@@ -177,7 +178,7 @@ export const createTransparentPayment = async (
       });
     }
   } catch (error: any) {
-    console.error("Erro ao criar pagamento:", error.response?.data || error);
+    console.error("Erro ao criar pagamento:", error.response?.data || error.message);
     res.status(500).json({
       message: "Erro ao criar pagamento",
       error: error.response?.data || error.message,
