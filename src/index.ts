@@ -67,7 +67,11 @@ app.get("/", (req, res) => {
 });
 
 // Rotas
-app.use("/payment", paymentRoutes);
+app.use("/payment", (req, res, next) => {
+  console.log("Dados de pagamento recebidos:", req.body);
+  next();
+});
+
 app.use("/products", productRoutes);
 app.use("/banners", bannerRoutes);
 app.use("/users", userRoutes);
