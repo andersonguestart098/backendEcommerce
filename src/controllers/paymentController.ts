@@ -38,7 +38,7 @@ export const createTransparentPayment = async (
   });
 
   try {
-    // Validação inicial de campos obrigatórios
+    // Validação de entrada
     if (
       !transaction_amount ||
       transaction_amount <= 0.5 ||
@@ -50,13 +50,11 @@ export const createTransparentPayment = async (
       );
     }
 
-    // Validação do token para métodos de pagamento que exigem cartão de crédito
-    const creditCardMethods = ["credit_card", "visa", "mastercard", "amex"];
-    if (creditCardMethods.includes(payment_method_id) && !token) {
+    const requiresToken = ["credit_card", "visa", "mastercard", "amex"];
+    if (requiresToken.includes(payment_method_id) && !token) {
       throw new Error("Token obrigatório para pagamentos com cartão de crédito.");
     }
 
-    // Validação dos produtos
     if (
       !products ||
       !Array.isArray(products) ||
@@ -74,7 +72,6 @@ export const createTransparentPayment = async (
 
     console.log("Validações iniciais concluídas.");
 
-    // Busca o usuário no banco de dados
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { address: true },
@@ -96,9 +93,6 @@ export const createTransparentPayment = async (
       },
     };
 
-    console.log("Dados do pagador (payer):", JSON.stringify(payer, null, 2));
-
-    // Criação da ordem no banco de dados
     const order = await prisma.order.create({
       data: {
         userId,
@@ -115,9 +109,6 @@ export const createTransparentPayment = async (
       include: { products: true },
     });
 
-    console.log("Pedido criado com sucesso no banco:", JSON.stringify(order, null, 2));
-
-    // Configuração dos dados de pagamento
     const paymentData: any = {
       transaction_amount,
       description: products.map((p: any) => p.description || p.productId).join(", "),
@@ -126,43 +117,38 @@ export const createTransparentPayment = async (
       statement_descriptor: "Seu E-commerce",
       notification_url: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
       external_reference: order.id,
-      token, // incluir apenas se for pagamento com cartão de crédito
-      installments, // incluir se for parcelamento
+      token,
+      installments,
     };
 
-    // Gerar chave de idempotência
     const idempotencyKey = uuidv4();
 
-    // Enviar para Mercado Pago com os headers necessários
     const response = await mercadopago.payment.create(paymentData, {
       headers: {
-        "X-Idempotency-Key": idempotencyKey, // Garantir idempotência
+        "X-Idempotency-Key": idempotencyKey,
       },
     });
 
     const paymentResponse = response.body;
 
-    console.log("Resposta Mercado Pago:", JSON.stringify(paymentResponse, null, 2));
+    console.log("Resposta do Mercado Pago:", paymentResponse);
 
-    // Verificação do status da resposta
-    if (!paymentResponse || !paymentResponse.status) {
-      throw new Error("Resposta do Mercado Pago inválida ou incompleta.");
+    if (paymentResponse.status === "approved") {
+      console.log("Pagamento aprovado:", paymentResponse.id);
+    } else {
+      console.warn("Pagamento não aprovado. Status:", paymentResponse.status_detail);
     }
 
     res.status(200).json({
       message: "Pagamento processado com sucesso",
       status: paymentResponse.status,
+      status_detail: paymentResponse.status_detail,
       id: paymentResponse.id,
+      qr_code: paymentResponse.point_of_interaction?.transaction_data?.qr_code_base64 || null,
+      ticket_url: paymentResponse.point_of_interaction?.transaction_data?.ticket_url || null,
     });
   } catch (error: any) {
     console.error("Erro ao processar pagamento:", error.response?.data || error.message);
-
-    if (error.response) {
-      console.error("Erro de resposta do Mercado Pago:", error.response.data);
-    } else {
-      console.error("Erro interno:", error.message);
-    }
-
     res.status(500).json({
       message: "Erro ao processar pagamento",
       error: error.response?.data || error.message,
