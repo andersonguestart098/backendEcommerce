@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
 const mercadopago = require("mercadopago");
+import { v4 as uuidv4 } from "uuid"; // Para gerar chaves únicas
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -137,8 +138,16 @@ export const createTransparentPayment = async (
 
     console.log("Payment data final enviado ao Mercado Pago:", JSON.stringify(paymentData, null, 2));
 
+    // Adicionar o header X-Idempotency-Key
+    const idempotencyKey = uuidv4();
+
     // Processamento do pagamento
-    const response = await mercadopago.payment.create(paymentData);
+    const response = await mercadopago.payment.create(paymentData, {
+      headers: {
+        "X-Idempotency-Key": idempotencyKey,
+      },
+    });
+
     const paymentResponse = response.body;
 
     console.log("Resposta Mercado Pago:", JSON.stringify(paymentResponse, null, 2));
