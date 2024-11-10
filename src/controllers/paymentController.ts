@@ -75,6 +75,8 @@ export const createTransparentPayment = async (
       },
     };
 
+    console.log("Dados do pagador (payer):", JSON.stringify(payer, null, 2));
+
     // Criação da ordem no banco de dados
     const order = await prisma.order.create({
       data: {
@@ -92,7 +94,10 @@ export const createTransparentPayment = async (
       include: { products: true },
     });
 
-    const paymentData = {
+    console.log("Pedido criado com sucesso no banco:", JSON.stringify(order, null, 2));
+
+    // Configuração dos dados de pagamento
+    const paymentData: any = {
       transaction_amount,
       description: products.map((p: any) => p.description || p.productId).join(", "),
       payment_method_id,
@@ -101,10 +106,20 @@ export const createTransparentPayment = async (
       statement_descriptor: "Seu E-commerce",
       notification_url: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
       external_reference: order.id,
-      ...(payment_method_id === "credit_card" && { token, installments }),
     };
 
+    // Adiciona token e installments para pagamentos com cartão de crédito
+    if (payment_method_id === "credit_card") {
+      if (!token) {
+        throw new Error("Token obrigatório para pagamentos com cartão de crédito.");
+      }
+      paymentData.token = token;
+      paymentData.installments = installments;
+    }
+
     console.log("Enviando pagamento para Mercado Pago:", JSON.stringify(paymentData, null, 2));
+
+    // Processamento do pagamento
     const response = await mercadopago.payment.create(paymentData);
     const paymentResponse = response.body;
 
@@ -117,7 +132,10 @@ export const createTransparentPayment = async (
     });
 
   } catch (error: any) {
-    console.error("Erro ao processar pagamento:", error.message);
-    res.status(500).json({ error: error.message });
+    console.error("Erro ao processar pagamento:", error.response?.data || error.message);
+    res.status(500).json({
+      message: "Erro ao processar pagamento",
+      error: error.response?.data || error.message,
+    });
   }
 };
