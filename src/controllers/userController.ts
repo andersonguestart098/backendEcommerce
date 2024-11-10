@@ -25,17 +25,18 @@ export const getUserById = async (
   try {
     const user = await prisma.user.findUnique({
       where: { id },
-      include: { address: true }, // Inclui o endereço ao buscar o usuário
+      include: { address: true }, // Inclui o endereço associado ao usuário
     });
     if (!user) {
       res.status(404).json({ message: "Usuário não encontrado" });
     } else {
-      res.json(user);
+      res.json(user); // Retorna os dados do usuário junto com o endereço
     }
   } catch (err) {
     res.status(500).json({ message: "Erro ao buscar usuário" });
   }
 };
+
 
 export const createUser = async (
   req: Request,
