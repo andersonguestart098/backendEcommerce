@@ -26,6 +26,16 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
+  console.log("Dados recebidos no backend:", {
+    transaction_amount,
+    payment_method_id,
+    installments,
+    token,
+    products,
+    userId,
+    device_id,
+  });
+
   try {
     // Validação inicial
     if (
@@ -55,11 +65,15 @@ export const createTransparentPayment = async (
       throw new Error("Produtos inválidos. Verifique os campos productId, unit_price e quantity.");
     }
 
+    console.log("Validações iniciais concluídas.");
+
     // Busca o usuário
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { address: true },
     });
+
+    console.log("Usuário encontrado:", user);
 
     if (!user) {
       throw new Error(`Usuário com ID ${userId} não encontrado.`);
@@ -117,7 +131,7 @@ export const createTransparentPayment = async (
       paymentData.installments = installments;
     }
 
-    console.log("Enviando pagamento para Mercado Pago:", JSON.stringify(paymentData, null, 2));
+    console.log("Enviando dados de pagamento para Mercado Pago:", JSON.stringify(paymentData, null, 2));
 
     // Processamento do pagamento
     const response = await mercadopago.payment.create(paymentData);
