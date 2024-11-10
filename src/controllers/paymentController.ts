@@ -1,8 +1,8 @@
 import { Request, Response } from "express";
 import dotenv from "dotenv";
 import { PrismaClient } from "@prisma/client";
-const mercadopago = require("mercadopago");
 import { v4 as uuidv4 } from "uuid"; // Para gerar chaves únicas
+const mercadopago = require("mercadopago");
 
 dotenv.config();
 const prisma = new PrismaClient();
@@ -123,28 +123,20 @@ export const createTransparentPayment = async (
       description: products.map((p: any) => p.description || p.productId).join(", "),
       payment_method_id,
       payer,
-      metadata: { device_id },
       statement_descriptor: "Seu E-commerce",
       notification_url: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
       external_reference: order.id,
+      token, // incluir apenas se for pagamento com cartão de crédito
+      installments, // incluir se for parcelamento
     };
 
-    // Adiciona token e installments para métodos de cartão de crédito
-    if (creditCardMethods.includes(payment_method_id)) {
-      paymentData.token = token;
-      paymentData.installments = installments;
-      console.log("Token adicionado ao paymentData:", paymentData.token);
-    }
-
-    console.log("Payment data final enviado ao Mercado Pago:", JSON.stringify(paymentData, null, 2));
-
-    // Adicionar o header X-Idempotency-Key
+    // Gerar chave de idempotência
     const idempotencyKey = uuidv4();
 
-    // Processamento do pagamento
+    // Enviar para Mercado Pago com os headers necessários
     const response = await mercadopago.payment.create(paymentData, {
       headers: {
-        "X-Idempotency-Key": idempotencyKey,
+        "X-Idempotency-Key": idempotencyKey, // Garantir idempotência
       },
     });
 
@@ -165,7 +157,6 @@ export const createTransparentPayment = async (
   } catch (error: any) {
     console.error("Erro ao processar pagamento:", error.response?.data || error.message);
 
-    // Detalhamento do erro de comunicação com a API
     if (error.response) {
       console.error("Erro de resposta do Mercado Pago:", error.response.data);
     } else {
