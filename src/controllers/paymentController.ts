@@ -42,12 +42,17 @@ export const createTransparentPayment = async (
       !transaction_amount ||
       transaction_amount <= 0.5 ||
       !payment_method_id ||
-      (payment_method_id === "credit_card" && !token) ||
       !userId
     ) {
       throw new Error(
-        `Dados obrigatórios ausentes ou inválidos. Detalhes: transaction_amount=${transaction_amount}, payment_method_id=${payment_method_id}, token=${token}, userId=${userId}`
+        `Dados obrigatórios ausentes ou inválidos. Detalhes: transaction_amount=${transaction_amount}, payment_method_id=${payment_method_id}, userId=${userId}`
       );
+    }
+
+    // Validação do token para métodos de pagamento que exigem cartão de crédito
+    const creditCardMethods = ["credit_card", "visa", "mastercard", "amex"];
+    if (creditCardMethods.includes(payment_method_id) && !token) {
+      throw new Error("Token obrigatório para pagamentos com cartão de crédito.");
     }
 
     // Validação dos produtos
@@ -74,11 +79,11 @@ export const createTransparentPayment = async (
       include: { address: true },
     });
 
-    console.log("Usuário encontrado:", user);
-
     if (!user) {
       throw new Error(`Usuário com ID ${userId} não encontrado.`);
     }
+
+    console.log("Usuário encontrado:", user);
 
     const payer = {
       email: user.email,
@@ -123,15 +128,11 @@ export const createTransparentPayment = async (
       external_reference: order.id,
     };
 
-    // Adiciona token e installments para pagamentos com cartão de crédito
-    if (payment_method_id === "credit_card") {
-      if (!token) {
-        throw new Error("Token obrigatório para pagamentos com cartão de crédito.");
-      }
+    // Adiciona token e installments para métodos de cartão de crédito
+    if (creditCardMethods.includes(payment_method_id)) {
       paymentData.token = token;
       paymentData.installments = installments;
-
-      console.log("Token adicionado ao pagamento:", paymentData.token);
+      console.log("Token adicionado ao paymentData:", paymentData.token);
     }
 
     console.log("Payment data final enviado ao Mercado Pago:", JSON.stringify(paymentData, null, 2));
