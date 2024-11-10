@@ -163,7 +163,7 @@ export const createTransparentPayment = async (
       id: paymentResponse.id,
     });
   } catch (error: any) {
-    console.error("Erro ao processar pagamento:", error.response?.data || error.message);
+    console.error("Erro ao processar Pagamento:", error.response?.data || error.message);
 
     // Detalhamento do erro de comunicação com a API
     if (error.response) {
