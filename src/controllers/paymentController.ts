@@ -43,21 +43,20 @@ export const createTransparentPayment = async (
       token,
       userId,
     });
-    res
-      .status(400)
-      .json({ error: "Dados obrigatórios ausentes ou incorretos." });
+    res.status(400).json({ error: "Dados obrigatórios ausentes ou incorretos." });
     return;
   }
 
   try {
+    // Validação dos produtos
     if (
       !products ||
-      products.some((product: any) => !product.productId || !product.quantity)
+      products.some((product: any) => !product.productId || !product.unit_price || !product.quantity)
     ) {
       console.error("Produtos inválidos recebidos:", products);
-      res
-        .status(400)
-        .json({ error: "Produtos inválidos. Verifique productId e quantity." });
+      res.status(400).json({
+        error: "Produtos inválidos. Verifique productId, unit_price e quantity.",
+      });
       return;
     }
 
@@ -82,6 +81,7 @@ export const createTransparentPayment = async (
       },
     };
 
+    // Cria a ordem no banco de dados
     const order = await prisma.order.create({
       data: {
         userId,
@@ -91,17 +91,18 @@ export const createTransparentPayment = async (
           create: products.map((product: any) => ({
             productId: product.productId,
             quantity: product.quantity,
+            unitPrice: product.unit_price,
           })),
         },
       },
       include: {
-        products: { include: { product: true } }, // Inclui informações detalhadas do produto
+        products: { include: { product: true } }, // Inclui detalhes dos produtos relacionados
       },
     });
 
     const description =
       products && products.length > 0
-        ? products.map((p: any) => p.productId).join(", ")
+        ? products.map((p: any) => p.description || p.productId).join(", ")
         : "Compra de produtos";
 
     // Dados do pagamento com `order.id` em `external_reference`
