@@ -16,8 +16,6 @@ export const createTransparentPayment = async (
 ): Promise<void> => {
   console.log("===== Iniciando criação de pagamento =====");
 
-  console.log("Dados recebidos no backend:", JSON.stringify(req.body, null, 2));
-
   const {
     transaction_amount,
     payment_method_id,
@@ -28,27 +26,20 @@ export const createTransparentPayment = async (
     device_id = "default_device_id",
   } = req.body;
 
-  // Validação dos dados recebidos
-  if (
-    !transaction_amount ||
-    transaction_amount <= 0.5 ||
-    !payment_method_id ||
-    (payment_method_id === "credit_card" && !token) ||
-    !userId
-  ) {
-    console.error("Erro: Dados obrigatórios ausentes ou incorretos:", {
-      transaction_amount,
-      payment_method_id,
-      token,
-      userId,
-    });
-    res.status(400).json({ error: "Dados obrigatórios ausentes ou incorretos." });
-    return;
-  }
-
-  console.log("Token capturado no backend:", token);
-
   try {
+    // Validação inicial
+    if (
+      !transaction_amount ||
+      transaction_amount <= 0.5 ||
+      !payment_method_id ||
+      (payment_method_id === "credit_card" && !token) ||
+      !userId
+    ) {
+      throw new Error(
+        `Dados obrigatórios ausentes ou inválidos. Detalhes: transaction_amount=${transaction_amount}, payment_method_id=${payment_method_id}, token=${token}, userId=${userId}`
+      );
+    }
+
     if (
       !products ||
       !Array.isArray(products) ||
@@ -61,28 +52,18 @@ export const createTransparentPayment = async (
           product.quantity <= 0
       )
     ) {
-      console.error("Erro: Produtos inválidos recebidos:", products);
-      res.status(400).json({
-        error: "Produtos inválidos. Verifique productId, unit_price e quantity.",
-      });
-      return;
+      throw new Error("Produtos inválidos. Verifique os campos productId, unit_price e quantity.");
     }
 
-    console.log("Produtos validados:", products);
-
-    // Busca o usuário no banco de dados
+    // Busca o usuário
     const user = await prisma.user.findUnique({
       where: { id: userId },
       include: { address: true },
     });
 
     if (!user) {
-      console.error("Erro: Usuário não encontrado para userId:", userId);
-      res.status(404).json({ error: "Usuário não encontrado" });
-      return;
+      throw new Error(`Usuário com ID ${userId} não encontrado.`);
     }
-
-    console.log("Usuário encontrado:", user);
 
     const payer = {
       email: user.email,
@@ -94,9 +75,7 @@ export const createTransparentPayment = async (
       },
     };
 
-    console.log("Dados do pagador (payer):", payer);
-
-    // Cria a ordem no banco de dados
+    // Criação da ordem no banco de dados
     const order = await prisma.order.create({
       data: {
         userId,
@@ -110,89 +89,35 @@ export const createTransparentPayment = async (
           })),
         },
       },
-      include: {
-        products: { include: { product: true } },
-      },
+      include: { products: true },
     });
 
-    console.log("Pedido criado com sucesso no banco:", order);
-
-    const description =
-      products && products.length > 0
-        ? products.map((p: any) => p.description || p.productId).join(", ")
-        : "Compra de produtos";
-
-    const paymentData: any = {
+    const paymentData = {
       transaction_amount,
-      description,
+      description: products.map((p: any) => p.description || p.productId).join(", "),
       payment_method_id,
       payer,
-      metadata: {
-        device_id: device_id,
-      },
+      metadata: { device_id },
       statement_descriptor: "Seu E-commerce",
-      notification_url:
-        "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
+      notification_url: "https://ecommerce-fagundes-13c7f6f3f0d3.herokuapp.com/webhooks/mercado-pago/webhook",
       external_reference: order.id,
+      ...(payment_method_id === "credit_card" && { token, installments }),
     };
 
-    if (payment_method_id === "credit_card") {
-      paymentData.token = token;
-      paymentData.installments = installments;
-    }
-
-    console.log(
-      "Enviando dados de pagamento para Mercado Pago:",
-      JSON.stringify(paymentData, null, 2)
-    );
-
+    console.log("Enviando pagamento para Mercado Pago:", JSON.stringify(paymentData, null, 2));
     const response = await mercadopago.payment.create(paymentData);
+    const paymentResponse = response.body;
 
-    console.log("Resposta do Mercado Pago:", JSON.stringify(response.body, null, 2));
+    console.log("Resposta Mercado Pago:", JSON.stringify(paymentResponse, null, 2));
 
-    if (
-      payment_method_id === "bolbradesco" &&
-      response.body.transaction_details?.external_resource_url
-    ) {
-      res.status(200).json({
-        message: "Pagamento via boleto criado",
-        status: response.body.status,
-        status_detail: response.body.status_detail,
-        id: response.body.id,
-        boleto_url: response.body.transaction_details.external_resource_url,
-      });
-    } else if (
-      payment_method_id === "pix" &&
-      response.body?.point_of_interaction?.transaction_data?.qr_code_base64
-    ) {
-      res.status(200).json({
-        message: "Pagamento via Pix criado",
-        status: response.body.status,
-        status_detail: response.body.status_detail,
-        id: response.body.id,
-        point_of_interaction: {
-          transaction_data: {
-            qr_code_base64:
-              response.body.point_of_interaction.transaction_data.qr_code_base64,
-          },
-        },
-      });
-    } else {
-      res.status(200).json({
-        message: "Pagamento criado",
-        status: response.body.status,
-        status_detail: response.body.status_detail,
-        id: response.body.id,
-      });
-    }
-  } catch (error: any) {
-    console.error(
-      "Erro ao criar pagamento:",
-      JSON.stringify(error.response?.data || error.message, null, 2)
-    );
-    res.status(500).json({
-      message: "Erro ao criar pagamento",
-      error: error.response?.data || error.message,
+    res.status(200).json({
+      message: "Pagamento processado com sucesso",
+      status: paymentResponse.status,
+      id: paymentResponse.id,
     });
+
+  } catch (error: any) {
+    console.error("Erro ao processar pagamento:", error.message);
+    res.status(500).json({ error: error.message });
   }
 };
