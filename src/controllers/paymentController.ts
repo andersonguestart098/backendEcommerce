@@ -144,8 +144,7 @@ export const createTransparentPayment = async (
       status: paymentResponse.status,
       status_detail: paymentResponse.status_detail,
       id: paymentResponse.id,
-      qr_code: paymentResponse.point_of_interaction?.transaction_data?.qr_code_base64 || null,
-      ticket_url: paymentResponse.point_of_interaction?.transaction_data?.ticket_url || null,
+      boletoUrl: paymentResponse.transaction_details?.external_resource_url || null, // Certifique-se de retornar o boletoUrl corretamente.
     });
   } catch (error: any) {
     console.error("Erro ao processar pagamento:", error.response?.data || error.message);
