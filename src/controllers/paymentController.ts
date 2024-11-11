@@ -149,7 +149,6 @@ export const createTransparentPayment = async (
     });
     
     
-    
   } catch (error: any) {
     console.error("Erro ao processar pagamento:", error.response?.data || error.message);
     res.status(500).json({
@@ -157,4 +156,4 @@ export const createTransparentPayment = async (
       error: error.response?.data || error.message,
     });
   }
-};
+};5
