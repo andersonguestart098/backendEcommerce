@@ -145,8 +145,9 @@ export const createTransparentPayment = async (
       status_detail: paymentResponse.status_detail,
       id: paymentResponse.id,
       boletoUrl: paymentResponse.transaction_details?.external_resource_url || null, // Link do boleto
-      qr_code_base64: paymentResponse.point_of_interaction?.transaction_data?.qr_code_base64 || null, // QR Code do Pix
+      qr_code_base64: paymentResponse.point_of_interaction?.transaction_data?.qr_code_base64 || null, // QR Code Pix
     });
+    
     
     
   } catch (error: any) {
