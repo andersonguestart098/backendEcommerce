@@ -144,8 +144,9 @@ export const createTransparentPayment = async (
       status: paymentResponse.status,
       status_detail: paymentResponse.status_detail,
       id: paymentResponse.id,
-      boletoUrl: paymentResponse.transaction_details?.external_resource_url || null, // Certifique-se de retornar o boletoUrl corretamente.
+      boletoUrl: paymentResponse.transaction_details?.external_resource_url || null, // Certifique-se de enviar o link do boleto
     });
+    
   } catch (error: any) {
     console.error("Erro ao processar pagamento:", error.response?.data || error.message);
     res.status(500).json({
